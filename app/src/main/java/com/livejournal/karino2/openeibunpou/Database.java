@@ -14,6 +14,8 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.google.gson.Gson;
+
 public class Database {
 
 
@@ -53,7 +55,6 @@ public class Database {
 				+");");
 		
 		
-		// cmd 0: sync stage table.
 		// cmd 1: sync one stage, body equal stageName
 		db.execSQL("CREATE TABLE pendingrequest_table (_id integer primary key autoincrement"
 	+",cmd integer"
@@ -120,8 +121,25 @@ public class Database {
 
 		
 	public Cursor queryStageCursor() {
-		return database.query("stage_table", new String[]{"_id", "stageName", "loaded", "completion"}, null, null,null,null, "stageName");
+		return database.query("stage_table", new String[]{"_id", "stageName", "loaded", "completion"}, null, null,null,null, "stageName DESC");
 	}
+
+    public void updateStageLoadState(String stageName, int newLoadedVal) {
+        ContentValues values = new ContentValues();
+        values.put("loaded", newLoadedVal);
+        database.update("stage_table", values, "stageName = ?", new String[]{stageName});
+    }
+
+    public void insertOneQuestionRecord(String stageName, QuestionRecord record, Gson gson) {
+        ContentValues values = new ContentValues();
+        values.put("stageName", stageName);
+        values.put("subName", record.sub);
+        values.put("body", record.body);
+        values.put("options", gson.toJson(record.options));
+        values.put("answer", gson.toJson(record.answer));
+        values.put("type", record.type);
+        database.insert("question_table", null, values);
+    }
 
 	
 	public void insertStage(String stageName) {
@@ -131,17 +149,47 @@ public class Database {
 		values.put("completion", 0);
 		database.insert("stage_table", null, values);
 	}
-	
-	public void insertStageTableSyncRequest() {
-		ContentValues values = new ContentValues();
-		values.put("cmd", 0);
-		values.put("body", ""); // not used
-		database.insert("pendingrequest_table", null, values);
-	}
-	
-	public void deletePendingTableSyncRequest() {
-		database.delete("pendingrequest_table", "cmd = 0", null);
+
+	public void insertOneStageSyncRequest(String stageName) {
+        ContentValues values = new ContentValues();
+        values.put("cmd", 1);
+        values.put("body", stageName);
+        database.insert("pendingrequest_table", null, values);
+    }
+	public void deletePendingOneStageSyncRequest(String stageName) {
+		database.delete("pendingrequest_table", "body = ?", new String[]{stageName});
 	}
 
-	
+    public static class PendingCommand {
+        public int cmd;
+        public String body;
+        public PendingCommand(int cmd, String body) {
+            this.cmd = cmd;
+            this.body = body;
+        }
+    }
+
+    Cursor queryPendingCursor() {
+        return database.query("pendingrequest_table", new String[]{"_id", "cmd", "body"}, null, null,null,null, "_id ASC");
+    }
+
+    public List<PendingCommand> queryPendingCommand() {
+        ArrayList<PendingCommand> res = new ArrayList<>();
+        Cursor cursor = queryPendingCursor();
+        try {
+            if(cursor.getCount() == 0)
+                return res;
+            cursor.moveToFirst();
+            do {
+                PendingCommand cmd = new PendingCommand(cursor.getInt(1), cursor.getString(2));
+                res.add(cmd);
+            }while(cursor.moveToNext());
+        }finally {
+            if(cursor != null)
+                cursor.close();
+        }
+        return res;
+    }
+
+
 }

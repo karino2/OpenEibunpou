@@ -12,12 +12,16 @@ import android.support.v7.app.NotificationCompat;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class StageActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     private final int STATUS_NOTIFICAITON_ID = R.layout.activity_stage;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,18 +35,19 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
             public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
-                if(columnIndex == 2) {
-                    TextView tv = (TextView)view;
+                if (columnIndex == 2) {
+                    TextView tv = (TextView) view;
                     int loaded = cursor.getInt(2);
-                    if(loaded == 0)
+                    tv.setTag(loaded);
+                    if (loaded == 0)
                         tv.setText("Not loaded.");
                     else
                         tv.setText("Loaded.");
                     return true;
                 }
 
-                if(columnIndex == 3) {
-                    TextView tv = (TextView)view;
+                if (columnIndex == 3) {
+                    TextView tv = (TextView) view;
                     int completion = cursor.getInt(3);
                     tv.setText(completion + " %");
                     return true;
@@ -53,6 +58,23 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         });
 
         lv.setAdapter(adapter);
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                TextView loadedTv = (TextView)view.findViewById(R.id.textViewLoaded);
+                int loaded = (int)loadedTv.getTag();
+                if(loaded == 1) {
+                    // loaded. start game
+                    showMessage("TODO: goto game");
+                } else {
+                    loadedTv.setText("Loading...");
+                    TextView nameTv = (TextView)view.findViewById(R.id.textViewStageName);
+                    String stageName = nameTv.getText().toString();
+                    sync.loadStage(stageName);
+                }
+
+            }
+        });
 
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);;
 
@@ -65,6 +87,16 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
             }
 
             @Override
+            public void notifyOneStageUpdate(String stageName) {
+                refresh();
+            }
+
+            @Override
+            public void notifyOneStageSyncError(String stageName, String msg) {
+                notifyStatusBarWithTicker("Error", stageName + "load fail: " + msg, null);
+            }
+
+            @Override
             public void notifyError(String msg) {
                 notifyStatusBarWithTicker("Error", msg, null);
             }
@@ -73,6 +105,10 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         setStatusLabel("");
 
         getLoaderManager().initLoader(0, null, this);
+    }
+
+    void showMessage(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
     private void refresh() {
