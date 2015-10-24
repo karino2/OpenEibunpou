@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.support.v7.app.NotificationCompat;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -27,6 +28,30 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
 
         adapter = new SimpleCursorAdapter(this, R.layout.stage_item, null,
                 new String[]{"stageName", "loaded", "completion"}, new int[]{R.id.textViewStageName, R.id.textViewLoaded, R.id.textViewCompletion}, 0);
+        adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
+            @Override
+            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+                if(columnIndex == 2) {
+                    TextView tv = (TextView)view;
+                    int loaded = cursor.getInt(2);
+                    if(loaded == 0)
+                        tv.setText("Not loaded.");
+                    else
+                        tv.setText("Loaded.");
+                    return true;
+                }
+
+                if(columnIndex == 3) {
+                    TextView tv = (TextView)view;
+                    int completion = cursor.getInt(3);
+                    tv.setText(completion + " %");
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
         lv.setAdapter(adapter);
 
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);;
