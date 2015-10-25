@@ -98,11 +98,17 @@ public class QuestionActivity extends AppCompatActivity {
                 stage.gotoNext();
                 applyCurrentQuestion();
             } else {
-                showMessage("finish.");
+                gotoFinishActivity();
             }
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void gotoFinishActivity() {
+        Intent intent = new Intent(this, FinishStageActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     private ListView findOptionListView() {
