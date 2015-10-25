@@ -38,6 +38,18 @@ public class QuestionActivity extends AppCompatActivity {
             }
         });
 
+        OptionsView optionsView = (OptionsView)findViewById(R.id.optionView);
+        optionsView.setEnableEnterListener(new OptionsView.EnableEnterListener() {
+            @Override
+            public void enableEnter() {
+                findViewById(R.id.buttonEnter).setEnabled(true);
+            }
+
+            @Override
+            public void disableEnter() {
+                findViewById(R.id.buttonEnter).setEnabled(false);
+            }
+        });
     }
 
     private void applyCurrentQuestion() {
@@ -46,35 +58,25 @@ public class QuestionActivity extends AppCompatActivity {
         tv.setText(question.getBody());
 
         String[] options = question.getOptions();
-        ListView lv = findOptionListView();
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_multiple_choice, options);
-        lv.setAdapter(adapter);
-    }
-
-    int[] toIntArray(List<Integer> arr) {
-        int[] res = new int[arr.size()];
-        for(int i = 0; i < res.length; i++) {
-            res[i] = arr.get(i);
+        OptionsView optionsView = (OptionsView)findViewById(R.id.optionView);
+        switch(question.getQuestionType()) {
+            case 3:
+                optionsView.setOptionType(OptionsView.OPTION_TYPE_DOUBLE);
+                break;
+            default:
+                optionsView.setOptionType(OptionsView.OPTION_TYPE_SINGLE);
+                break;
         }
-        return res;
+        optionsView.setOptions(options);
     }
 
     int[] getSelectedIds() {
-        ListView lv = findOptionListView();
-        SparseBooleanArray checked = lv.getCheckedItemPositions();
-        List<Integer> checkedIds = new ArrayList<>();
-        for(int i = 0; i < checked.size(); i++) {
-            if(checked.valueAt(i))
-                checkedIds.add(checked.keyAt(i)+1);
-        }
-        return toIntArray(checkedIds);
+        OptionsView optionsView = (OptionsView)findViewById(R.id.optionView);
+        return optionsView.getSelectedIds();
     }
 
     void gotoAnswer() {
         QuestionRecord question = stage.getCurrentQuestion();
-
-
 
         Intent intent = new Intent(this, AnswerActivity.class);
         intent.putExtra("selectedNum", getSelectedIds());
@@ -111,9 +113,6 @@ public class QuestionActivity extends AppCompatActivity {
         finish();
     }
 
-    private ListView findOptionListView() {
-        return (ListView)findViewById(R.id.listViewOptions);
-    }
 
     String stageName;
     Stage stage;

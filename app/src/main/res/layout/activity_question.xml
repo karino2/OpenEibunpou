@@ -27,12 +27,10 @@
         android:layout_alignParentEnd="true"
         android:minLines="4" />
 
-    <ListView
+    <com.livejournal.karino2.openeibunpou.OptionsView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/listViewOptions"
-        android:clickable="true"
+        android:id="@+id/optionView"
         android:layout_below="@+id/textViewBody"
-        android:layout_above="@+id/buttonEnter"
-        android:choiceMode="multipleChoice" />
+        android:layout_above="@+id/buttonEnter"/>
 </RelativeLayout>

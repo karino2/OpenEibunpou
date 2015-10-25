@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/rootLayout">
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"></TableRow>
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_column="3">
+            <TextView android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="1: " />
+
+            <TextView android:layout_height="wrap_content"
+                android:layout_width="fill_parent"
+                android:layout_weight="1"
+                android:id="@+id/textViewChoiceOne" />
+
+
+            <Button android:id="@+id/buttonDeleteOne"
+                android:text="x"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content" />
+
+        </TableRow>
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_column="3">
+            <TextView android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="2: " />
+
+            <TextView android:layout_height="wrap_content"
+                android:layout_width="fill_parent"
+                android:layout_weight="1"
+                android:id="@+id/textViewChoiceTwo" />
+
+
+            <Button android:id="@+id/buttonDeleteTwo"
+                android:text="x"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content" />
+
+        </TableRow>
+    </TableLayout>
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/listView"
+        android:layout_gravity="center_horizontal" />
+
+</LinearLayout>
