@@ -20,6 +20,8 @@ public class Stage {
     }
 
     public void addQuestion(QuestionRecord rec) {
+        if(rec.getQuestionType() == 99)
+            return; // ignore.
         questions.add(rec);
     }
 
