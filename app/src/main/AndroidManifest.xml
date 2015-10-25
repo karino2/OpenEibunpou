@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.livejournal.karino2.openeibunpou" >
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -15,6 +16,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity android:name=".QuestionActivity" >
+        </activity>
+        <activity android:name=".AnswerActivity" >
         </activity>
     </application>
 

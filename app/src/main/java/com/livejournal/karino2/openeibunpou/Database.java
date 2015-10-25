@@ -191,5 +191,22 @@ public class Database {
         return res;
     }
 
+    public Stage queryStage(String stageName) {
+        Stage stage = new Stage(stageName);
+        Cursor cursor = database.query("question_table", new String[]{"_id", "stageName", "subName", "body", "options", "answer", "type"}, "stageName = ?", new String[] { stageName },null,null, "subName ASC");
+        try {
+            if(0 == cursor.getCount())
+                return stage;
+            cursor.moveToFirst();
+            do {
+                stage.addQuestion(new QuestionRecord(cursor));
+            }while(cursor.moveToNext());
+            
+            return stage;
+        }finally {
+            cursor.close();
+        }
+    }
+
 
 }

@@ -3,6 +3,7 @@ package com.livejournal.karino2.openeibunpou;
 import android.app.LoaderManager;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Handler;
@@ -61,15 +62,15 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                TextView nameTv = (TextView)view.findViewById(R.id.textViewStageName);
+                String stageName = nameTv.getText().toString();
+
                 TextView loadedTv = (TextView)view.findViewById(R.id.textViewLoaded);
                 int loaded = (int)loadedTv.getTag();
                 if(loaded == 1) {
-                    // loaded. start game
-                    showMessage("TODO: goto game");
+                    gotoGame(stageName);
                 } else {
                     loadedTv.setText("Loading...");
-                    TextView nameTv = (TextView)view.findViewById(R.id.textViewStageName);
-                    String stageName = nameTv.getText().toString();
                     sync.loadStage(stageName);
                 }
 
@@ -105,6 +106,12 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         setStatusLabel("");
 
         getLoaderManager().initLoader(0, null, this);
+    }
+
+    private void gotoGame(String stageName) {
+        Intent intent = new Intent(this, QuestionActivity.class);
+        intent.putExtra("stageName", stageName);
+        startActivity(intent);
     }
 
     void showMessage(String msg) {
