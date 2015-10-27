@@ -1,5 +1,6 @@
 package com.livejournal.karino2.openeibunpou;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -58,6 +59,16 @@ public class QuestionActivity extends AppCompatActivity {
         });
     }
 
+    private void updateTitleBar() {
+        int comp = stage.getCurrentQuestion().getCompletion();
+        String percent;
+        if(comp == -1)
+            percent = "-%";
+        else
+            percent = comp+"%";
+        setTitle(String.format("%d/%d %s %s", stage.getCurrentPosition()+1, stage.getQuestionNum(), "achievement", percent));
+    }
+
     private void applyCurrentQuestion() {
         QuestionRecord question = stage.getCurrentQuestion();
         TextView tv = (TextView)findViewById(R.id.textViewBody);
@@ -74,6 +85,7 @@ public class QuestionActivity extends AppCompatActivity {
                 break;
         }
         optionsView.setOptions(options);
+        updateTitleBar();
     }
 
     int[] getSelectedIds() {

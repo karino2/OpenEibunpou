@@ -80,9 +80,6 @@ public class Stage {
         return hundredCount*100/allQuestions.size();
     }
 
-    public void gotoQuestion(int index) {
-        currentPosition = index;
-    }
 
     public void gotoNext() {
         currentPosition++;
@@ -91,6 +88,8 @@ public class Stage {
     public int getCurrentPosition() {
         return currentPosition;
     }
+
+    public int getQuestionNum() { return questions.size(); }
 
     public QuestionRecord getCurrentQuestion() {
         return questions.get(currentPosition);
