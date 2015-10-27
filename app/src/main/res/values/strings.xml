@@ -3,4 +3,5 @@
     <string name="label_enter">Enter</string>
     <string name="label_answer">Answer:</string>
     <string name="label_next">Next</string>
+    <string name="choose_account_label">Chose account for progress store.</string>
 </resources>

@@ -17,16 +17,22 @@ public class QuestionActivity extends AppCompatActivity {
 
     final int DUMMY_REQUEST_ANSWER_ID = 1;
 
+    Sync sync;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
+
+        sync = new Sync(Database.getInstance(this), Server.getInstance());
 
         Intent intent = getIntent();
         if(intent != null)
         {
             stageName = intent.getStringExtra("stageName");
             stage = Database.getInstance(this).queryStage(stageName);
+            stage.setupNewStage();
+            sync.syncCompletion(stageName);
         }
 
         applyCurrentQuestion();
@@ -78,14 +84,25 @@ public class QuestionActivity extends AppCompatActivity {
     void gotoAnswer() {
         QuestionRecord question = stage.getCurrentQuestion();
 
+        int[] selectedIds = getSelectedIds();
+        if(isCorrect(selectedIds, question.getAnswers())) {
+            question.answerCorrectUpdateCompletion();
+        } else {
+            question.answerWrongUpdateCompletion();
+        }
+
         Intent intent = new Intent(this, AnswerActivity.class);
-        intent.putExtra("selectedNum", getSelectedIds());
+        intent.putExtra("selectedNum", selectedIds);
         intent.putExtra("answerNum", question.getAnswers());
         intent.putExtra("options", question.getOptions());
         intent.putExtra("body", question.getBody());
         intent.putExtra("questionType", question.getQuestionType());
 
         startActivityForResult(intent, DUMMY_REQUEST_ANSWER_ID);
+    }
+
+    private boolean isCorrect(int[] selected, int[] answers) {
+        return AnswerActivity.isCorrect(selected, answers);
     }
 
     void showMessage(String msg) {
@@ -108,6 +125,10 @@ public class QuestionActivity extends AppCompatActivity {
     }
 
     private void gotoFinishActivity() {
+        sync.updateCompletion(stageName, stage.updateCompletionJson());
+        sync.updateStageCompletion(stageName, stage.calcStageCompletion());
+
+
         Intent intent = new Intent(this, FinishStageActivity.class);
         startActivity(intent);
         finish();
@@ -121,7 +142,6 @@ public class QuestionActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         outState.putString("stageName", stageName);
-        outState.putInt("stagePosition", stage.getCurrentPosition());
         super.onSaveInstanceState(outState);
     }
 
@@ -132,7 +152,7 @@ public class QuestionActivity extends AppCompatActivity {
         stageName = savedInstanceState.getString("stageName");
         if(stage == null) {
             stage = Database.getInstance(this).queryStage(stageName);
-            stage.gotoQuestion(savedInstanceState.getInt("stagePosition"));
+            stage.setupNewStage();
 
             applyCurrentQuestion();
         }

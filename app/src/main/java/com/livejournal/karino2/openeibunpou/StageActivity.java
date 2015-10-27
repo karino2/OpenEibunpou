@@ -1,10 +1,18 @@
 package com.livejournal.karino2.openeibunpou;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.accounts.AccountManagerCallback;
+import android.accounts.AccountManagerFuture;
+import android.accounts.AuthenticatorException;
+import android.accounts.OperationCanceledException;
+import android.app.Activity;
 import android.app.LoaderManager;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -19,15 +27,33 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
+
 public class StageActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     private final int STATUS_NOTIFICAITON_ID = R.layout.activity_stage;
 
 
+    void ensureCookie() {
+        if(this.cookie == null) {
+            // showMessage("setup...");
+            Account account = getAccount();
+            if(account == null)
+            {
+                pendingAuth = true;
+                startActivity(new Intent(this, SetupActivity.class));
+                return;
+            }
+            startRetrieveCookie(this, account);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stage);
+        ensureCookie();
+
+
 
         ListView lv = (ListView)findViewById(R.id.listViewStages);
 
@@ -80,7 +106,7 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);;
 
 
-        sync = new Sync(getDatabase(this), new Server(), new Sync.StateListener() {
+        sync = new Sync(getDatabase(this), Server.getInstance(), new Sync.StateListener() {
             @Override
             public void notifyStagesUpdate() {
                 setStatusLabel("");
@@ -201,4 +227,110 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         }
         return super.onOptionsItemSelected(item);
     }
+
+
+
+    // cookie related.
+    boolean pendingAuth = false;
+	String authToken = null;
+	String cookie = null;
+
+	private Account getAccount() {
+		String accountName = getAccountName();
+		if("".equals(accountName))
+			return null;
+		return new Account(accountName, "com.google");
+	}
+
+	public String getAccountName() {
+		SharedPreferences prefs = this.getSharedPreferences("account", Activity.MODE_PRIVATE);
+		String accountName = prefs.getString("accountName", "");
+		return accountName;
+	}
+
+    interface Retry {
+        void run(String authToken);
+    }
+
+    private class GetAuthTokenCallback implements AccountManagerCallback<Bundle> {
+        boolean isSecond;
+
+        Retry onRetry;
+
+        GetAuthTokenCallback(boolean isSecond, Retry onRetry) {
+            this.isSecond = isSecond;
+            this.onRetry = onRetry;
+        }
+
+        public void run(AccountManagerFuture<Bundle> result) {
+            Bundle bundle;
+            try {
+                bundle = result.getResult();
+                Intent intent = (Intent)bundle.get(AccountManager.KEY_INTENT);
+                if(intent != null) {
+                    // User input required
+                    pendingAuth = true;
+                    startActivity(intent);
+                } else {
+                    authToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
+                    sync.requestGetCookie(authToken, new Sync.OnCookieErrorListener() {
+                        @Override
+                        public void onError(String msg) {
+                            if(!isSecond) {
+                                showMessage("retry with invalidate authToken.");
+                                onRetry.run(authToken);
+                                return;
+                            }
+                            showMessage("get cookie fail.");
+                            return;
+
+                        }
+                    });
+                }
+            } catch (OperationCanceledException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (AuthenticatorException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void startRetrieveCookie(Context context, final Account account) {
+        AccountManager accountManager = AccountManager.get(context);
+        accountManager.getAuthToken (account, "ah", null, false, new GetAuthTokenCallback(false, new Retry(){
+            public void run(String authToken) {
+                invalidateAuthTokenAndRetry(account, authToken);
+            }}), null);
+    }
+
+    private void invalidateAuthTokenAndRetry(Account account, String authToken) {
+        AccountManager accountManager = AccountManager.get(this);
+        accountManager.invalidateAuthToken(account.type, authToken);
+        accountManager.getAuthToken (account, "ah", null, false, new GetAuthTokenCallback(true, null), null);
+    }
+
+
+    @Override
+    protected void onResume() {
+            super.onResume();
+            if(pendingAuth)
+	        {
+	            Account account = getAccount();
+	            // before start SetupActivity, onResume is called. This time account is still null.
+	            if(account != null) {
+		            pendingAuth = false;
+	            	startRetrieveCookie(this, account);
+	            }
+	       } else {
+                refresh();
+            }
+    }
+
+    
+    
 }

@@ -86,7 +86,7 @@ public class AnswerActivity extends AppCompatActivity {
         });
     }
 
-    private boolean isCorrect(int[] selected, int[] answer) {
+    public static boolean isCorrect(int[] selected, int[] answer) {
         if(selected.length != answer.length)
             return false;
         for(int i = 0; i < selected.length; i++) {

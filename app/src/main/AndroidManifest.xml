@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.livejournal.karino2.openeibunpou" >
 
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
 
     <application
         android:allowBackup="true"
@@ -22,6 +25,8 @@
         <activity android:name=".AnswerActivity" >
         </activity>
         <activity android:name=".FinishStageActivity" >
+        </activity>
+        <activity android:name=".SetupActivity" >
         </activity>
     </application>
 
