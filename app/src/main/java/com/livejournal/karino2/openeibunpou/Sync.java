@@ -295,7 +295,13 @@ public class Sync {
                 }
                 case Database.CMD_ID_UPDATE_MYLIKE: {
                     Map<String, String> postParams = new HashMap<String, String>();
-                    postParams.put("json", current.body);
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("{\"id\":");
+                    builder.append(current.body);
+                    builder.append(",\"val\":");
+                    builder.append(current.arg);
+                    builder.append("}");
+                    postParams.put("json", builder.toString());
                     server.executePost("/like", postParams, new PendingUpdateListener(current.id));
                     break;
                 }

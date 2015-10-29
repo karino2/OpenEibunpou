@@ -134,14 +134,41 @@ public class AnswerActivity extends AppCompatActivity {
             @Override
             public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
                 if(columnIndex == 5) {
+                    // view is testViewLike. set serverId here for a while.
+                    view.setTag(cursor.getLong(1));
+
                     View parent = (View)view.getParent();
                     int myval =cursor.getInt(5);
                     parent.setTag(myval);
+                    TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
+                    TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
+
+                    likeTv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            View par = (View)v.getParent();
+                            long id = (long)v.getTag();
+                            TextView likeTv2 = (TextView)v;
+                            TextView dislikeTv2 =  (TextView)par.findViewById(R.id.textViewDislike);
+                            onLikeClicked(id, par, likeTv2, dislikeTv2);
+                        }
+                    });
+                    dislikeTv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            View par = (View)v.getParent();
+                            TextView dislikeTv2 = (TextView)v;
+                            TextView likeTv2 =  (TextView)par.findViewById(R.id.textViewLike);
+                            long id = (long) likeTv2.getTag();
+                            onDislikeClicked(id, par, likeTv2, dislikeTv2);
+                        }
+                    });
+
+
+
                     if(myval == 1) {
-                        TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
                         likeTv.setTextColor(Color.RED);
                     } else if (myval == -1) {
-                        TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
                         dislikeTv.setTextColor(Color.RED);
                     }
                     return true;
@@ -150,6 +177,7 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
         ListView lv = (ListView)findViewById(R.id.listViewComment);
+        /*
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -160,37 +188,18 @@ public class AnswerActivity extends AppCompatActivity {
                 switch(view.getId()) {
                     case R.id.textViewLike:
                     {
-                        int current =(Integer) parentView.getTag();
-                        if(current == 1) {
-                            parentView.setTag(0);
-                            likeTv.setTextColor(Color.LTGRAY);
-                            sync.postLike(id, 0);
-                            return;
-                        }
-                        parentView.setTag(1);
-                        likeTv.setTextColor(Color.RED);
-                        dislikeTv.setTextColor(Color.LTGRAY);
-                        sync.postLike(id, 1);
+                        onLikeClicked(id, parentView, likeTv, dislikeTv);
                         break;
                     }
                     case R.id.textViewDislike:
                     {
-                        int current =(Integer) parentView.getTag();
-                        if(current == -1) {
-                            parentView.setTag(0);
-                            likeTv.setTextColor(Color.LTGRAY);
-                            sync.postLike(id, 0);
-                            return;
-                        }
-                        parentView.setTag(-1);
-                        dislikeTv.setTextColor(Color.RED);
-                        likeTv.setTextColor(Color.LTGRAY);
-                        sync.postLike(id, -1);
-                        break;
+                        onDislikeClicked(id, parentView, likeTv, dislikeTv);
+                        return;
                     }
                 }
             }
         });
+        */
         lv.setAdapter(adapter);
 
         getLoaderManager().initLoader(0, null, new LoaderManager.LoaderCallbacks<Cursor>() {
@@ -224,6 +233,35 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    public void onDislikeClicked(long id, View parentView, TextView likeTv, TextView dislikeTv) {
+        int current =(Integer) parentView.getTag();
+        if(current == -1) {
+            parentView.setTag(0);
+            likeTv.setTextColor(Color.LTGRAY);
+            sync.postLike(id, 0);
+            return;
+        }
+        parentView.setTag(-1);
+        dislikeTv.setTextColor(Color.RED);
+        likeTv.setTextColor(Color.LTGRAY);
+        sync.postLike(id, -1);
+        return;
+    }
+
+    public void onLikeClicked(long id, View parentView, TextView likeTv, TextView dislikeTv) {
+        int current =(Integer) parentView.getTag();
+        if(current == 1) {
+            parentView.setTag(0);
+            likeTv.setTextColor(Color.LTGRAY);
+            sync.postLike(id, 0);
+            return;
+        }
+        parentView.setTag(1);
+        likeTv.setTextColor(Color.RED);
+        dislikeTv.setTextColor(Color.LTGRAY);
+        sync.postLike(id, 1);
     }
 
     public static boolean isCorrect(int[] selected, int[] answer) {
