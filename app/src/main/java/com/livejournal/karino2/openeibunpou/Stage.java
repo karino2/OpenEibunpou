@@ -27,6 +27,7 @@ public class Stage {
     }
 
     public void setupNewStage() {
+        Collections.shuffle(allQuestions);
         sortAllQuestions();
         questions.clear();
         questions.addAll(allQuestions.subList(0, questionSize));
