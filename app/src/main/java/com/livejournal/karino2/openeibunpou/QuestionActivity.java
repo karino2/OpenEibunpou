@@ -1,18 +1,11 @@
 package com.livejournal.karino2.openeibunpou;
 
-import android.app.ActionBar;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.SparseBooleanArray;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class QuestionActivity extends AppCompatActivity {
 
@@ -20,12 +13,15 @@ public class QuestionActivity extends AppCompatActivity {
 
     Sync sync;
 
+    public static Sync s_sync; // for temp workaround.
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
 
         sync = new Sync(Database.getInstance(this), Server.getInstance());
+        s_sync = sync;
 
         Intent intent = getIntent();
         if(intent != null)
@@ -33,7 +29,7 @@ public class QuestionActivity extends AppCompatActivity {
             stageName = intent.getStringExtra("stageName");
             stage = Database.getInstance(this).queryStage(stageName);
             stage.setupNewStage();
-            sync.syncCompletion(stageName);
+            sync.syncStageSecond(stageName);
         }
 
         applyCurrentQuestion();
@@ -109,6 +105,8 @@ public class QuestionActivity extends AppCompatActivity {
         intent.putExtra("options", question.getOptions());
         intent.putExtra("body", question.getBody());
         intent.putExtra("questionType", question.getQuestionType());
+        intent.putExtra("stageName", stageName);
+        intent.putExtra("subName", question.getSubName());
 
         startActivityForResult(intent, DUMMY_REQUEST_ANSWER_ID);
     }

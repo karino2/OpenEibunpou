@@ -10,6 +10,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQueryBuilder;
 
 import com.google.gson.Gson;
 
@@ -19,10 +20,10 @@ public class Database {
 	public static final int CMD_ID_SYNC_QUESTIONS = 1;
 	public static final int CMD_ID_SYNC_COMPLETION = 2;
 	public static final int CMD_ID_UPDATE_COMPLETION = 3;
-
-	public void insertUpdateCompletionRequest(String json) {
-		insertPendingCmd(CMD_ID_UPDATE_COMPLETION, json);
-	}
+	public static final int CMD_ID_SYNC_USERPOST = 4;
+    public static final int CMD_ID_POST_USERPOST = 5;
+	public static final int CMD_ID_SYNC_MYLIKE = 6;
+    public static final int CMD_ID_UPDATE_MYLIKE = 7;
 
 
     private class OpenHelper extends SQLiteOpenHelper {
@@ -65,21 +66,46 @@ public class Database {
 		+",completion integer not null"
 		+",date integer not null"
 		+");");
-		
+
+		db.execSQL("CREATE TABLE userpost_table (_id integer primary key autoincrement"
+                +",serverId integer not null"
+				+",owner text not null"
+				+",stageName text not null"
+				+",subName text not null"
+				+",anonymous integer not null"
+				+",parent integer not null"
+				+",childrenNum integer not null"
+				+",like integer not null"
+				+",dislike integer not null"
+				+",totalScore integer not null"
+				+",report integer not null"
+				+",body text not null"
+				+",date integer not null"
+				+");");
+
+		db.execSQL("CREATE TABLE like_table (_id integer primary key autoincrement"
+                +",postId integer not null"
+				+",val integer not null"
+				+",date integer not null"
+				+");");
+
 		
 		// cmd 1: sync one stage, body equal stageName
 		// cmd 2: sync one stage completion, body equal stageName
 		db.execSQL("CREATE TABLE pendingrequest_table (_id integer primary key autoincrement"
-	+",cmd integer"
-	+",body text not null"
+                +",cmd integer"
+                +",body text not null"
+                +",arg text"
 				+");");
-				
+
 	}
 
 	private void dropTables(SQLiteDatabase db) {
 		db.execSQL("DROP TABLE IF EXISTS question_table;");
 		db.execSQL("DROP TABLE IF EXISTS stage_table;");
 		db.execSQL("DROP TABLE IF EXISTS completion_table;");
+		db.execSQL("DROP TABLE IF EXISTS userpost_table;");
+		db.execSQL("DROP TABLE IF EXISTS like_table;");
 		db.execSQL("DROP TABLE IF EXISTS pendingrequest_table;");
 	}
 	
@@ -179,14 +205,57 @@ public class Database {
 		database.insert("completion_table", null, values);
 	}
 
+    public void insertMyLike(long postId, int val, long tick) {
+        ContentValues values = new ContentValues();
+        values.put("postId", postId);
+        values.put("val", val);
+        values.put("date", tick);
+        database.insert("like_table", null, values);
+    }
 
+    public static class UserPostRecord {
+        public long id;
+        public String owner;
+        public int anonymous;
+        public String sub;
+        public long parent;
+        public String body;
+        public int like;
+        public int dislike;
+        public long date;
+    }
+
+    public void insertUserPost(String stageName, UserPostRecord rec) {
+        ContentValues values = new ContentValues();
+        values.put("serverId", rec.id);
+        values.put("owner", rec.owner);
+        values.put("stageName", stageName);
+        values.put("subName", rec.sub);
+        values.put("anonymous", rec.anonymous);
+        values.put("parent", rec.parent);
+        values.put("childrenNum", 0);
+        values.put("like", rec.like);
+        values.put("dislike", rec.dislike);
+        values.put("totalScore", rec.like - rec.dislike);
+        values.put("report", 0);
+        values.put("body", rec.body);
+        values.put("date", rec.date);
+        database.insert("userpost_table", null, values);
+    }
+
+
+    public void insertPendingCmdWithArg(int cmd, String body, String arg) {
+        ContentValues values = new ContentValues();
+        values.put("cmd", cmd);
+        values.put("body", body);
+        values.put("arg", arg);
+        database.insert("pendingrequest_table", null, values);
+
+    }
 
 
 	public void insertPendingCmd(int cmd, String body) {
-		ContentValues values = new ContentValues();
-		values.put("cmd", cmd);
-		values.put("body", body);
-		database.insert("pendingrequest_table", null, values);
+        insertPendingCmdWithArg(cmd, body, "");
 	}
 
 	public void insertOneStageSyncRequest(String stageName) {
@@ -197,7 +266,31 @@ public class Database {
 		insertPendingCmd(CMD_ID_SYNC_COMPLETION, stageName);
 	}
 
-	public void deletePendingOneStageSyncRequest(String stageName) {
+    public void insertUpdateCompletionRequest(String json) {
+        insertPendingCmd(CMD_ID_UPDATE_COMPLETION, json);
+    }
+
+    public void insertUserPostSyncRequest(String stageName) {
+        insertPendingCmd(CMD_ID_SYNC_USERPOST, stageName);
+    }
+
+    public void insertPostUserPostRequest(String json) {
+        insertPendingCmd(CMD_ID_POST_USERPOST, json);
+    }
+
+    public void insertMyLikeSyncRequest(String stageName) {
+        insertPendingCmd(CMD_ID_SYNC_MYLIKE, stageName);
+    }
+
+    public void insertMyLikeUpdateRequest(long id, int newVal) {
+        insertPendingCmdWithArg(CMD_ID_UPDATE_MYLIKE, String.valueOf(id), String.valueOf(newVal));
+    }
+
+    public void deletePendingMyLikeUpdate(long id) {
+        deletePendingCommand(CMD_ID_UPDATE_MYLIKE, String.valueOf(id));
+    }
+
+    public void deletePendingOneStageSyncRequest(String stageName) {
 		deletePendingCommand(CMD_ID_SYNC_QUESTIONS, stageName);
 	}
 
@@ -219,15 +312,17 @@ public class Database {
 		public long id;
         public int cmd;
         public String body;
-        public PendingCommand(long id, int cmd, String body) {
+        public String arg;
+        public PendingCommand(long id, int cmd, String body, String arg) {
 			this.id = id;
             this.cmd = cmd;
             this.body = body;
+            this.arg = arg;
         }
     }
 
     Cursor queryPendingCursor() {
-        return database.query("pendingrequest_table", new String[]{"_id", "cmd", "body"}, null, null,null,null, "_id ASC");
+        return database.query("pendingrequest_table", new String[]{"_id", "cmd", "body", "arg"}, null, null,null,null, "_id DESC");
     }
 
     public List<PendingCommand> queryPendingCommand() {
@@ -238,7 +333,7 @@ public class Database {
                 return res;
             cursor.moveToFirst();
             do {
-                PendingCommand cmd = new PendingCommand(cursor.getLong(0), cursor.getInt(1), cursor.getString(2));
+                PendingCommand cmd = new PendingCommand(cursor.getLong(0), cursor.getInt(1), cursor.getString(2), cursor.getString(3));
                 res.add(cmd);
             }while(cursor.moveToNext());
         }finally {
@@ -292,17 +387,94 @@ public class Database {
 	}
 
 	public long lastCompletionTick(String stageName) {
-		Cursor cursor = database.query("completion_table", new String[]{"max(date)"}, "stageName = ?", new String[]{stageName}, null, null, null);
-		try {
-			if(cursor.getCount() == 0)
-				return 0;
-			cursor.moveToFirst();
-			return cursor.getLong(0);
-		}finally {
-			cursor.close();
-		}
-
+        return lastTick(stageName, "completion_table");
 	}
+
+    public long lastLikeTick(String stageName) {
+        SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        builder.setTables("userpost_table LEFT OUTER JOIN like_table ON (userpost_table.serverId = like_table.postId)");
+        Cursor cursor = builder.query(database, new String[]{"max(like_table.date)"}, "stageName =?", new String[]{stageName}, null, null, null);
+        return getMaxDate(cursor);
+    }
+
+    public long lastTick(String stageName, String tableName) {
+        Cursor cursor = database.query(tableName, new String[]{"max(date)"}, "stageName = ?", new String[]{stageName}, null, null, null);
+        return getMaxDate(cursor);
+    }
+
+    public long getMaxDate(Cursor cursor) {
+        try {
+            if(cursor.getCount() == 0)
+                return 0;
+            cursor.moveToFirst();
+            return cursor.getLong(0);
+        }finally {
+            cursor.close();
+        }
+    }
+
+    public long lastPostTick(String stageName) {
+        return lastTick(stageName, "userpost_table");
+    }
+
+    /*
+		db.execSQL("CREATE TABLE userpost_table (_id integer primary key autoincrement"
+                +",serverId integer not null"
+				+",owner text not null"
+				+",stageName text not null"
+				+",subName text not null"
+				+",anonymous integer not null"
+				+",parent integer not null"
+				+",childrenNum integer not null"
+				+",like integer not null"
+				+",dislike integer not null"
+				+",totalScore integer not null"
+				+",report integer not null"
+				+",body text not null"
+				+",date integer not null"
+				+");");
+
+		db.execSQL("CREATE TABLE like_table (_id integer primary key autoincrement"
+                +",postId integer not null"
+				+",val integer not null"
+				+",date integer not null"
+				+");");
+
+     */
+    public Cursor queryPosts(String stageName, String subName) {
+        /*
+        return database.query("userpost_table", new String[]{"_id", "serverId", "like", "dislike", "body", "stageName", "subName", "totalScore"},
+                "stageName = ? AND subName = ?",
+                new String[] {
+                        stageName,
+                        subName
+                },
+                null,
+                null,
+                "totalScore DESC"
+                );
+                */
+        SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        builder.setTables("userpost_table LEFT OUTER JOIN like_table ON (userpost_table.serverId = like_table.postId)");
+        return builder.query(database, new String[]{
+                        "userpost_table._id as _id",
+                        "serverId",
+                        "like",
+                        "dislike",
+                        "body",
+                        "val as mylike"
+                },
+                "stageName = ? AND subName = ?",
+                new String[] {
+                        stageName,
+                        subName
+                },
+                null,
+                null,
+                "totalScore DESC"
+                );
+
+    }
 
 
 }

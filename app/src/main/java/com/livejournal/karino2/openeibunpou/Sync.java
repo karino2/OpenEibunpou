@@ -1,6 +1,5 @@
 package com.livejournal.karino2.openeibunpou;
 
-import android.database.Cursor;
 import android.os.Handler;
 
 import com.google.gson.Gson;
@@ -20,8 +19,11 @@ public class Sync {
     Server server;
 
     public void loadStage(String stageName) {
-        database.insertOneStageSyncRequest(stageName);
+        // reverse order because later is more prececent.
+        database.insertMyLikeSyncRequest(stageName);
+        database.insertUserPostSyncRequest(stageName);
         database.insertCompletionRequest(stageName);
+        database.insertOneStageSyncRequest(stageName);
         handlePendingRequest();
     }
 
@@ -37,9 +39,10 @@ public class Sync {
         // stateListener.notifyOneStageUpdate(stageName);
     }
 
-    public void syncCompletion(String stageName) {
+    public void syncStageSecond(String stageName) {
+        database.insertMyLikeSyncRequest(stageName);
+        database.insertUserPostSyncRequest(stageName);
         database.insertCompletionRequest(stageName);
-        // might be race condition. We'll fix when we make Sync to Service.
         handlePendingRequest();
     }
 
@@ -52,6 +55,24 @@ public class Sync {
 
     public void updateStageCompletion(String stageName, int completion) {
         database.updateStageCompletion(stageName, completion);
+    }
+
+    public void postComment(String stageName, String subName, String comment) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\"year\":\"");
+        builder.append(stageName);
+        builder.append("\",\"sub\":\"");
+        builder.append(subName);
+        builder.append("\",\"anon\":0,\"body\":\"");
+        builder.append(comment); // TOOD: encode.
+        builder.append("\"}");
+        database.insertPostUserPostRequest(builder.toString());
+        handlePendingRequest();
+    }
+
+    public void postLike(long id, int newVal) {
+        database.insertMyLikeUpdateRequest(id, newVal);
+        handlePendingRequest();
     }
 
     class QuestionCompletionRecord {
@@ -72,6 +93,48 @@ public class Sync {
         }
         stateListener.notifyOneStageUpdate(stageName);
     }
+
+    /*
+            obj = {
+            'id': p.key.id(),
+            'owner': owner,
+            'anonymous': p.anonymous,
+            'sub': p.subQuestionNumber,
+            'parent': p.parent,
+            'body': p.body,
+            'like': p.like,
+            'dislike': p.dislike,
+            'date': p.date
+            }
+
+     */
+    private void onUserPostListArrived(String stageName, String responseText) {
+        Gson gson = new Gson();
+        Type collectionType = new TypeToken<Collection<Database.UserPostRecord>>(){}.getType();
+        List<Database.UserPostRecord> records = gson.fromJson(responseText, collectionType);
+        for(Database.UserPostRecord rec : records) {
+            database.insertUserPost(stageName, rec);
+        }
+        // stateListener.notifyOneStageUpdate(stageName);
+    }
+
+    /*
+    postId, val, date
+     */
+    class MyLikeRecord {
+        public long postId;
+        public int val;
+        public long date;
+    }
+    private void onMyLikeListArrived(String stageName, String responseText) {
+        Gson gson = new Gson();
+        Type collectionType = new TypeToken<Collection<MyLikeRecord>>(){}.getType();
+        List<MyLikeRecord> records = gson.fromJson(responseText, collectionType);
+        for(MyLikeRecord rec : records) {
+            database.insertMyLike(rec.postId, rec.val, rec.date);
+        }
+    }
+
 
     public interface OnCookieErrorListener {
         void onError(String msg);
@@ -103,6 +166,12 @@ public class Sync {
             cmds.remove(0);
 
             if(cmds.size() == 0) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        handlePendingInternal();
+                    }
+                });
                 return;
             }
 
@@ -112,60 +181,126 @@ public class Sync {
 
         Database.PendingCommand current;
 
+        class PendingUpdateListener implements Server.OnContentReadyListener {
+            long cmdId;
+            PendingUpdateListener(long id) {
+                cmdId = id;
+            }
+
+            @Override
+            public void onReady(String responseText) {
+                database.deletePendingCommandById(cmdId);
+                handleNext();
+            }
+
+            @Override
+            public void onFail(String message) {
+                stateListener.notifyError("completion update fail: " + message);
+                // retry later, so not remove command here.
+                handleNext();
+            }
+        }
+
         @Override
         public void run() {
             current = cmds.get(0);
-            if(current.cmd == Database.CMD_ID_SYNC_QUESTIONS) {
-                server.executeGet("/questions/" + current.body, new Server.OnContentReadyListener() {
-                    @Override
-                    public void onReady(String responseText) {
-                        onQuestionsArrived(current.body, responseText);
-                        database.deletePendingOneStageSyncRequest(current.body);
-                        handleNext();
-                    }
+            switch(current.cmd) {
+                case  Database.CMD_ID_SYNC_QUESTIONS:
+                {
+                    server.executeGet("/questions/" + current.body, new Server.OnContentReadyListener() {
+                        @Override
+                        public void onReady(String responseText) {
+                            onQuestionsArrived(current.body, responseText);
+                            database.deletePendingOneStageSyncRequest(current.body);
+                            handleNext();
+                        }
 
-                    @Override
-                    public void onFail(String message) {
-                        stateListener.notifyOneStageSyncError(current.body, message);
-                        database.deletePendingOneStageSyncRequest(current.body);
-                        handleNext();
-                    }
-                });
-            } else if(current.cmd == Database.CMD_ID_SYNC_COMPLETION) {
-                server.executeGet("/compyear/" + current.body + "/" + database.lastCompletionTick(current.body), new Server.OnContentReadyListener() {
-                    @Override
-                    public void onReady(String responseText) {
-                        onQuestionsCompletionArrived(current.body, responseText);
-                        database.deletePendingCompletionRequest(current.body);
-                        handleNext();
-                    }
+                        @Override
+                        public void onFail(String message) {
+                            stateListener.notifyOneStageSyncError(current.body, message);
+                            database.deletePendingOneStageSyncRequest(current.body);
+                            handleNext();
+                        }
+                    });
+                    break;
+                }
+                case  Database.CMD_ID_SYNC_COMPLETION:
+                {
+                    server.executeGet("/compyear/" + current.body + "/" + database.lastCompletionTick(current.body), new Server.OnContentReadyListener() {
+                        @Override
+                        public void onReady(String responseText) {
+                            onQuestionsCompletionArrived(current.body, responseText);
+                            database.deletePendingCompletionRequest(current.body);
+                            handleNext();
+                        }
 
-                    @Override
-                    public void onFail(String message) {
-                        stateListener.notifyOneStageSyncError(current.body, message);
-                        database.deletePendingCompletionRequest(current.body);
-                        handleNext();
-                    }
-                });
-            } else if(current.cmd == Database.CMD_ID_UPDATE_COMPLETION) {
-                Map<String, String> postParams = new HashMap<String, String>();
-                postParams.put("json", current.body);
-                server.executePost("/cqupdate", postParams, new Server.OnContentReadyListener() {
-                    @Override
-                    public void onReady(String responseText) {
-                        database.deletePendingCommandById(current.id);
-                        handleNext();
-                    }
+                        @Override
+                        public void onFail(String message) {
+                            stateListener.notifyOneStageSyncError(current.body, message);
+                            database.deletePendingCompletionRequest(current.body);
+                            handleNext();
+                        }
+                    });
+                    break;
+                }
+                case Database.CMD_ID_UPDATE_COMPLETION:
+                {
+                    Map<String, String> postParams = new HashMap<String, String>();
+                    postParams.put("json", current.body);
+                    server.executePost("/cqupdate", postParams, new PendingUpdateListener(current.id));
+                    break;
+                }
+                case Database.CMD_ID_SYNC_USERPOST: {
+                    server.executeGet("/posts/" + current.body + "/" + database.lastPostTick(current.body), new Server.OnContentReadyListener() {
+                        @Override
+                        public void onReady(String responseText) {
+                            onUserPostListArrived(current.body, responseText);
+                            database.deletePendingCommand(Database.CMD_ID_SYNC_USERPOST, current.body);
+                            handleNext();
+                        }
 
-                    @Override
-                    public void onFail(String message) {
-                        stateListener.notifyError("completion update fail: " + message);
-                        // should I remove pending command? retry later?
-                        handleNext();
-                    }
-                });
-            } else {
-                throw new RuntimeException("Unknown pending cmd " + current.cmd);
+                        @Override
+                        public void onFail(String message) {
+                            stateListener.notifyError("userpost sync fail: " + current.body + "," + message);
+                            database.deletePendingCommand(Database.CMD_ID_SYNC_USERPOST, current.body);
+                            handleNext();
+                        }
+                    });
+                    break;
+
+                }
+                case Database.CMD_ID_POST_USERPOST: {
+                    Map<String, String> postParams = new HashMap<String, String>();
+                    postParams.put("json", current.body);
+                    server.executePost("/post", postParams, new PendingUpdateListener(current.id));
+                    break;
+                }
+                case Database.CMD_ID_SYNC_MYLIKE: {
+                    server.executeGet("/likes/" + current.body + "/" + database.lastLikeTick(current.body), new Server.OnContentReadyListener() {
+                        @Override
+                        public void onReady(String responseText) {
+                            onMyLikeListArrived(current.body, responseText);
+                            database.deletePendingCommand(Database.CMD_ID_SYNC_MYLIKE, current.body);
+                            handleNext();
+                        }
+
+                        @Override
+                        public void onFail(String message) {
+                            stateListener.notifyError("mylike sync fail: " + current.body + "," + message);
+                            database.deletePendingCommand(Database.CMD_ID_SYNC_MYLIKE, current.body);
+                            handleNext();
+                        }
+                    });
+                    break;
+                }
+                case Database.CMD_ID_UPDATE_MYLIKE: {
+                    Map<String, String> postParams = new HashMap<String, String>();
+                    postParams.put("json", current.body);
+                    server.executePost("/like", postParams, new PendingUpdateListener(current.id));
+                    break;
+                }
+                default:
+                    throw new RuntimeException("Unknown pending cmd " + current.cmd);
             }
         }
     }
@@ -174,9 +309,18 @@ public class Sync {
     // May be we should move this to other worker thread in the future.
     Handler handler = new Handler();
 
+    boolean handlingPendingNow = false;
     public void handlePendingRequest() {
+        if(handlingPendingNow)
+            return;
+
+        handlePendingInternal();
+    }
+
+    public void handlePendingInternal() {
         List<Database.PendingCommand> cmds = database.queryPendingCommand();
         if(cmds.size() == 0) {
+            handlingPendingNow = false;
             return;
         }
         handler.post(new PendingTaskAction(cmds));

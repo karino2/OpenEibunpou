@@ -1,10 +1,18 @@
 package com.livejournal.karino2.openeibunpou;
 
 import android.app.Activity;
+import android.app.LoaderManager;
 import android.content.Intent;
+import android.content.Loader;
+import android.database.Cursor;
+import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 public class AnswerActivity extends AppCompatActivity {
@@ -27,13 +35,31 @@ public class AnswerActivity extends AppCompatActivity {
         }
     }
 
+    SimpleCursorAdapter adapter;
+    Database database;
+
+    String stageName;
+    String subName;
+
+    Sync sync;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_answer);
 
+        database = Database.getInstance(this);
+        sync = QuestionActivity.s_sync; // temp workaround.
+
         Intent intent = getIntent();
         if(intent != null) {
+            // TODO: save instance state.
+            stageName = intent.getStringExtra("stageName");
+            subName = intent.getStringExtra("subName");
+
+
+
             TextView tv = (TextView)findViewById(R.id.textViewBody);
             tv.setText(intent.getStringExtra("body"));
 
@@ -77,6 +103,7 @@ public class AnswerActivity extends AppCompatActivity {
 
         }
 
+
         findViewById(R.id.buttonNext).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -84,6 +111,119 @@ public class AnswerActivity extends AppCompatActivity {
                 finish();
             }
         });
+
+        /*
+                                "userpost_table._id as _id",
+                        "serverId",
+                        "like",
+                        "dislike",
+                        "body",
+                        "val as mylike"
+
+         */
+        adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
+                new String[]{"body", "like", "dislike", "mylike"},
+                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike });
+        /*
+        adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
+                new String[]{"body", "like", "dislike"},
+                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal});
+                */
+
+        adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
+            @Override
+            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+                if(columnIndex == 5) {
+                    View parent = (View)view.getParent();
+                    int myval =cursor.getInt(5);
+                    parent.setTag(myval);
+                    if(myval == 1) {
+                        TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
+                        likeTv.setTextColor(Color.RED);
+                    } else if (myval == -1) {
+                        TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
+                        dislikeTv.setTextColor(Color.RED);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+        ListView lv = (ListView)findViewById(R.id.listViewComment);
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                View parentView = (View)view.getParent();
+                TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
+                TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
+
+                switch(view.getId()) {
+                    case R.id.textViewLike:
+                    {
+                        int current =(Integer) parentView.getTag();
+                        if(current == 1) {
+                            parentView.setTag(0);
+                            likeTv.setTextColor(Color.LTGRAY);
+                            sync.postLike(id, 0);
+                            return;
+                        }
+                        parentView.setTag(1);
+                        likeTv.setTextColor(Color.RED);
+                        dislikeTv.setTextColor(Color.LTGRAY);
+                        sync.postLike(id, 1);
+                        break;
+                    }
+                    case R.id.textViewDislike:
+                    {
+                        int current =(Integer) parentView.getTag();
+                        if(current == -1) {
+                            parentView.setTag(0);
+                            likeTv.setTextColor(Color.LTGRAY);
+                            sync.postLike(id, 0);
+                            return;
+                        }
+                        parentView.setTag(-1);
+                        dislikeTv.setTextColor(Color.RED);
+                        likeTv.setTextColor(Color.LTGRAY);
+                        sync.postLike(id, -1);
+                        break;
+                    }
+                }
+            }
+        });
+        lv.setAdapter(adapter);
+
+        getLoaderManager().initLoader(0, null, new LoaderManager.LoaderCallbacks<Cursor>() {
+            @Override
+            public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+                return new SimpleCursorLoader(AnswerActivity.this) {
+                    @Override
+                    public Cursor loadCursor() {
+                        return database.queryPosts(stageName, subName);
+                    }
+                };
+            }
+
+            @Override
+            public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+                adapter.swapCursor(data);
+            }
+
+            @Override
+            public void onLoaderReset(Loader<Cursor> loader) {
+                adapter.swapCursor(null);
+            }
+        });
+
+        findViewById(R.id.buttonSend).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditText et = (EditText)findViewById(R.id.editTextComment);
+                sync.postComment(stageName, subName, et.getText().toString());
+                et.setText("");
+            }
+        });
+
     }
 
     public static boolean isCorrect(int[] selected, int[] answer) {

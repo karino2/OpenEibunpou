@@ -4,4 +4,7 @@
     <string name="label_answer">Answer:</string>
     <string name="label_next">Next</string>
     <string name="choose_account_label">Chose account for progress store.</string>
+    <string name="label_send">Send</string>
+    <string name="label_like">+1</string>
+    <string name="label_dislike">-1</string>
 </resources>
