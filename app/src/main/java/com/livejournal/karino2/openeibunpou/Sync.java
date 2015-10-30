@@ -57,16 +57,23 @@ public class Sync {
         database.updateStageCompletion(stageName, completion);
     }
 
+
+    class PostDto {
+        String year;
+        String sub;
+        int anon;
+        String body;
+        PostDto(String y, String s, int a, String b) {
+            year = y;
+            sub = s;
+            anon = a;
+            body = b;
+        }
+    }
     public void postComment(String stageName, String subName, String comment) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{\"year\":\"");
-        builder.append(stageName);
-        builder.append("\",\"sub\":\"");
-        builder.append(subName);
-        builder.append("\",\"anon\":0,\"body\":\"");
-        builder.append(comment); // TOOD: encode.
-        builder.append("\"}");
-        database.insertPostUserPostRequest(builder.toString());
+        Gson gson = new Gson();
+        PostDto dto = new PostDto(stageName, subName, 0, comment);
+        database.insertPostUserPostRequest(gson.toJson(dto));
         handlePendingRequest();
     }
 
