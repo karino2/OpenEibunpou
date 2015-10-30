@@ -43,6 +43,27 @@ public class AnswerActivity extends AppCompatActivity {
 
     Sync sync;
 
+    View.OnClickListener likeTvClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            View par = (View)v.getParent();
+            long id = (long)v.getTag();
+            TextView likeTv2 = (TextView)v;
+            TextView dislikeTv2 =  (TextView)par.findViewById(R.id.textViewDislike);
+            onLikeClicked(id, par, likeTv2, dislikeTv2);
+        }
+    };
+
+    View.OnClickListener dislikeTvClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            View par = (View)v.getParent();
+            TextView dislikeTv2 = (TextView)v;
+            TextView likeTv2 =  (TextView)par.findViewById(R.id.textViewLike);
+            long id = (long) likeTv2.getTag();
+            onDislikeClicked(id, par, likeTv2, dislikeTv2);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,29 +163,11 @@ public class AnswerActivity extends AppCompatActivity {
                     parent.setTag(myval);
                     TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
                     TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
+                    likeTv.setTextColor(Color.LTGRAY);
+                    dislikeTv.setTextColor(Color.LTGRAY);
 
-                    likeTv.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            View par = (View)v.getParent();
-                            long id = (long)v.getTag();
-                            TextView likeTv2 = (TextView)v;
-                            TextView dislikeTv2 =  (TextView)par.findViewById(R.id.textViewDislike);
-                            onLikeClicked(id, par, likeTv2, dislikeTv2);
-                        }
-                    });
-                    dislikeTv.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            View par = (View)v.getParent();
-                            TextView dislikeTv2 = (TextView)v;
-                            TextView likeTv2 =  (TextView)par.findViewById(R.id.textViewLike);
-                            long id = (long) likeTv2.getTag();
-                            onDislikeClicked(id, par, likeTv2, dislikeTv2);
-                        }
-                    });
-
-
+                    likeTv.setOnClickListener(likeTvClickListener);
+                    dislikeTv.setOnClickListener(dislikeTvClickListener);
 
                     if(myval == 1) {
                         likeTv.setTextColor(Color.RED);
