@@ -207,10 +207,14 @@ public class Database {
 
     public void insertMyLike(long postId, int val, long tick) {
         ContentValues values = new ContentValues();
-        values.put("postId", postId);
         values.put("val", val);
         values.put("date", tick);
-        database.insert("like_table", null, values);
+		int resNum = database.update("like_table", values, "postId = ?", new String[]{String.valueOf(postId)});
+
+		if(resNum == 0) {
+			values.put("postId", postId);
+			database.insert("like_table", null, values);
+		}
     }
 
     public static class UserPostRecord {
