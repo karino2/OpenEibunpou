@@ -244,7 +244,9 @@ public class Database {
         values.put("report", 0);
         values.put("body", rec.body);
         values.put("date", rec.date);
-        database.insert("userpost_table", null, values);
+		int res = database.update("userpost_table", values, "serverId = ?" , new String[]{String.valueOf(rec.id)});
+		if(res == 0)
+	        database.insert("userpost_table", null, values);
     }
 
 
