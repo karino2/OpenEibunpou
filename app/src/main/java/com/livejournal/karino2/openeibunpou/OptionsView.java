@@ -145,6 +145,8 @@ public class OptionsView extends LinearLayout {
             clearPrevResult();
             return;
         }
+        firstChoiceId = -1;
+        secondChoiceId = -1;
 
         optionType = newType;
 
