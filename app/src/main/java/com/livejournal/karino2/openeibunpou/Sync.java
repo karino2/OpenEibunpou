@@ -19,7 +19,7 @@ public class Sync {
     Server server;
 
     public void loadStage(String stageName) {
-        // reverse order because later is more prececent.
+        // reverse order because later is more precedent.
         database.insertMyLikeSyncRequest(stageName);
         database.insertUserPostSyncRequest(stageName);
         database.insertCompletionRequest(stageName);
@@ -47,8 +47,9 @@ public class Sync {
     }
 
     public void updateCompletion(String stageName, String json) {
-        database.insertUpdateCompletionRequest(json);
+        // reverse order because later is more precedent.
         database.insertCompletionRequest(stageName);
+        database.insertUpdateCompletionRequest(json);
         // TODO: this might gc-ed.
         handlePendingRequest();
     }
