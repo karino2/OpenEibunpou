@@ -107,6 +107,7 @@ public class QuestionActivity extends AppCompatActivity {
         intent.putExtra("questionType", question.getQuestionType());
         intent.putExtra("stageName", stageName);
         intent.putExtra("subName", question.getSubName());
+        intent.putExtra("completion", question.getCompletion());
 
         startActivityForResult(intent, DUMMY_REQUEST_ANSWER_ID);
     }

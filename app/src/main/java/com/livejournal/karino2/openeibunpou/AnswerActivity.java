@@ -79,6 +79,7 @@ public class AnswerActivity extends AppCompatActivity {
             stageName = intent.getStringExtra("stageName");
             subName = intent.getStringExtra("subName");
 
+            setTitle(String.valueOf(intent.getIntExtra("completion", 0) + " %"));
 
 
             TextView tv = (TextView)findViewById(R.id.textViewBody);
