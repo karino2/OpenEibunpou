@@ -75,8 +75,13 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
 
                 if (columnIndex == 3) {
                     TextView tv = (TextView) view;
-                    int completion = cursor.getInt(3);
-                    tv.setText(completion + " %");
+                    int loaded = cursor.getInt(2);
+                    if(loaded == 0) {
+                        tv.setText("- %");
+                    }else {
+                        int completion = cursor.getInt(3);
+                        tv.setText(completion + " %");
+                    }
                     return true;
                 }
 
@@ -115,6 +120,7 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
 
             @Override
             public void notifyOneStageUpdate(String stageName) {
+                showMessage("Stage " + stageName + " loaded.");
                 refresh();
             }
 
