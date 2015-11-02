@@ -65,13 +65,19 @@ public class AnswerActivity extends AppCompatActivity {
         }
     };
 
+    Sync getSync() {
+        if(sync == null)
+            sync = QuestionActivity.s_sync; //temp workaround.
+        return sync;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_answer);
 
         database = Database.getInstance(this);
-        sync = QuestionActivity.s_sync; // temp workaround.
+        sync = getSync();
 
         Intent intent = getIntent();
         if(intent != null) {
@@ -237,6 +243,25 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        getSync().addOnUserPostArrivedListener(R.layout.activity_answer, new Sync.NotifyStageListener() {
+            @Override
+            public void onNotify(String stageName) {
+                Loader<Object> loader = getLoaderManager().getLoader(0);
+                if(loader != null)
+                    loader.forceLoad();
+            }
+        });
+    }
+
+    @Override
+    protected void onStop() {
+        getSync().removeUserPostArrivedListener(R.layout.activity_answer);
+        super.onStop();
     }
 
     public void onDislikeClicked(long id, View parentView, TextView likeTv, TextView dislikeTv) {

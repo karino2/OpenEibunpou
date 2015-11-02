@@ -74,6 +74,9 @@ public class Sync {
     public void postComment(String stageName, String subName, String comment) {
         Gson gson = new Gson();
         PostDto dto = new PostDto(stageName, subName, 0, comment);
+
+        // reverse order.
+        database.insertUserPostSyncRequest(stageName);
         database.insertPostUserPostRequest(gson.toJson(dto));
         handlePendingRequest();
     }
@@ -102,6 +105,26 @@ public class Sync {
         stateListener.notifyOneStageUpdate(stageName);
     }
 
+    public interface NotifyStageListener {
+        void onNotify(String stageName);
+    }
+
+    void callNotifyStageListeners(Map<Integer, NotifyStageListener> listenerMap, String stageName) {
+        for(NotifyStageListener listener : listenerMap.values()) {
+            listener.onNotify(stageName);
+        }
+    }
+
+    Map<Integer, NotifyStageListener> userPostListeners = new HashMap<>();
+
+    public void addOnUserPostArrivedListener(int id, NotifyStageListener listener) {
+        userPostListeners.put(id, listener);
+    }
+
+    public void removeUserPostArrivedListener(int id) {
+        userPostListeners.remove(id);
+    }
+
     /*
             obj = {
             'id': p.key.id(),
@@ -123,8 +146,9 @@ public class Sync {
         for(Database.UserPostRecord rec : records) {
             database.insertUserPost(stageName, rec);
         }
-        // stateListener.notifyOneStageUpdate(stageName);
+        callNotifyStageListeners(userPostListeners, stageName);
     }
+
 
     /*
     postId, val, date
