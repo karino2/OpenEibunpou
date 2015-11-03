@@ -67,7 +67,7 @@ public class AnswerActivity extends AppCompatActivity {
 
     Sync getSync() {
         if(sync == null)
-            sync = QuestionActivity.s_sync; //temp workaround.
+            sync = Sync.getInstance(this);
         return sync;
     }
 

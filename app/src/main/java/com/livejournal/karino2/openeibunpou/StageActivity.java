@@ -76,9 +76,9 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
                 if (columnIndex == 3) {
                     TextView tv = (TextView) view;
                     int loaded = cursor.getInt(2);
-                    if(loaded == 0) {
+                    if (loaded == 0) {
                         tv.setText("- %");
-                    }else {
+                    } else {
                         int completion = cursor.getInt(3);
                         tv.setText(completion + " %");
                     }
@@ -93,12 +93,12 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TextView nameTv = (TextView)view.findViewById(R.id.textViewStageName);
+                TextView nameTv = (TextView) view.findViewById(R.id.textViewStageName);
                 String stageName = nameTv.getText().toString();
 
-                TextView loadedTv = (TextView)view.findViewById(R.id.textViewLoaded);
-                int loaded = (int)loadedTv.getTag();
-                if(loaded == 1) {
+                TextView loadedTv = (TextView) view.findViewById(R.id.textViewLoaded);
+                int loaded = (int) loadedTv.getTag();
+                if (loaded == 1) {
                     gotoGame(stageName);
                 } else {
                     loadedTv.setText("Loading...");
@@ -111,33 +111,47 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);;
 
 
-        sync = new Sync(getDatabase(this), Server.getInstance(), new Sync.StateListener() {
-            @Override
-            public void notifyStagesUpdate() {
-                setStatusLabel("");
-                refresh();
-            }
-
-            @Override
-            public void notifyOneStageUpdate(String stageName) {
-                showMessage("Stage " + stageName + " loaded.");
-                refresh();
-            }
-
-            @Override
-            public void notifyOneStageSyncError(String stageName, String msg) {
-                notifyStatusBarWithTicker("Error", stageName + "load fail: " + msg, null);
-            }
-
-            @Override
-            public void notifyError(String msg) {
-                notifyStatusBarWithTicker("Error", msg, null);
-            }
-        });
+        sync = Sync.getInstance(this);
 
         setStatusLabel("");
 
         getLoaderManager().initLoader(0, null, this);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        sync = Sync.getInstance(this);
+        sync.addStageListUpdateListener(R.layout.activity_stage, new Sync.NotifyStageListListener() {
+            @Override
+            public void onUpdate() {
+                setStatusLabel("");
+                refresh();
+            }
+        });
+
+        sync.addOneStageLoadedListener(R.layout.activity_stage, new Sync.NotifyStageListener() {
+            @Override
+            public void onNotify(String stageName) {
+                showMessage("Stage " + stageName + " loaded.");
+                refresh();
+            }
+        });
+
+        sync.addErrorListener(R.layout.activity_stage, new Sync.ErrorListener() {
+            @Override
+            public void onError(String msg) {
+                notifyStatusBarWithTicker("Error", msg, null);
+            }
+        });
+    }
+
+    @Override
+    protected void onStop() {
+        sync.removeStageListUpdateListener(R.layout.activity_stage);
+        sync.removeOneStageLoadedListener(R.layout.activity_stage);
+        sync.removeErrorListener(R.layout.activity_stage);
+        super.onStop();
     }
 
     private void gotoGame(String stageName) {

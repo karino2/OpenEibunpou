@@ -1,5 +1,6 @@
 package com.livejournal.karino2.openeibunpou;
 
+import android.content.Context;
 import android.os.Handler;
 
 import com.google.gson.Gson;
@@ -17,6 +18,51 @@ import java.util.Map;
 public class Sync {
     Database database;
     Server server;
+
+    public interface NotifyStageListener {
+        void onNotify(String stageName);
+    }
+
+    void callNotifyStageListeners(Map<Integer, NotifyStageListener> listenerMap, String stageName) {
+        for(NotifyStageListener listener : listenerMap.values()) {
+            listener.onNotify(stageName);
+        }
+    }
+
+    public interface NotifyStageListListener {
+        void onUpdate();
+    }
+
+    Map<Integer, NotifyStageListListener> stageListListener = new HashMap<>();
+    public void addStageListUpdateListener(int id, NotifyStageListListener listener) {
+        stageListListener.put(id, listener);
+    }
+    public void removeStageListUpdateListener(int id) {
+        stageListListener.remove(id);
+    }
+    void callNotifyStageListUpdateListeners() {
+        for(NotifyStageListListener listener : stageListListener.values()) {
+            listener.onUpdate();
+        }
+    }
+
+    public interface ErrorListener {
+        void onError(String msg);
+    }
+    Map<Integer, ErrorListener> errorListeners = new HashMap<>();
+
+    public void addErrorListener(int id, ErrorListener listener) {
+        errorListeners.put(id, listener);
+    }
+    public void removeErrorListener(int id) {
+        errorListeners.remove(id);
+    }
+    void callErrorListeners(String msg) {
+        for(ErrorListener listener : errorListeners.values()) {
+            listener.onError(msg);
+        }
+    }
+
 
     public void loadStage(String stageName) {
         // reverse order because later is more precedent.
@@ -86,6 +132,17 @@ public class Sync {
         handlePendingRequest();
     }
 
+    Map<Integer, NotifyStageListener> completionArrivedListener = new HashMap<>();
+
+    public void addOneStageLoadedListener(int id, NotifyStageListener listener) {
+        completionArrivedListener.put(id, listener);
+    }
+
+    public void removeOneStageLoadedListener(int id) {
+        completionArrivedListener.remove(id);
+    }
+
+
     class QuestionCompletionRecord {
         String year;
         String sub;
@@ -102,17 +159,7 @@ public class Sync {
         for(QuestionCompletionRecord rec : records) {
             database.insertQuestionCompletion(stageName, rec.sub, rec.comp, rec.date);
         }
-        stateListener.notifyOneStageUpdate(stageName);
-    }
-
-    public interface NotifyStageListener {
-        void onNotify(String stageName);
-    }
-
-    void callNotifyStageListeners(Map<Integer, NotifyStageListener> listenerMap, String stageName) {
-        for(NotifyStageListener listener : listenerMap.values()) {
-            listener.onNotify(stageName);
-        }
+        callNotifyStageListeners(completionArrivedListener, stageName);
     }
 
     Map<Integer, NotifyStageListener> userPostListeners = new HashMap<>();
@@ -227,7 +274,7 @@ public class Sync {
 
             @Override
             public void onFail(String message) {
-                stateListener.notifyError("completion update fail: " + message);
+                callErrorListeners("completion update fail: " + message);
                 // retry later, so not remove command here.
                 handleNext();
             }
@@ -249,7 +296,7 @@ public class Sync {
 
                         @Override
                         public void onFail(String message) {
-                            stateListener.notifyOneStageSyncError(current.body, message);
+                            callErrorListeners("stage: " + current.body + ", " + message);
                             database.deletePendingOneStageSyncRequest(current.body);
                             handleNext();
                         }
@@ -268,7 +315,7 @@ public class Sync {
 
                         @Override
                         public void onFail(String message) {
-                            stateListener.notifyOneStageSyncError(current.body, message);
+                            callErrorListeners("stage: " + current.body + ", " + message);
                             database.deletePendingCompletionRequest(current.body);
                             handleNext();
                         }
@@ -293,7 +340,7 @@ public class Sync {
 
                         @Override
                         public void onFail(String message) {
-                            stateListener.notifyError("userpost sync fail: " + current.body + "," + message);
+                            callErrorListeners("userpost sync fail: " + current.body + "," + message);
                             database.deletePendingCommand(Database.CMD_ID_SYNC_USERPOST, current.body);
                             handleNext();
                         }
@@ -318,7 +365,7 @@ public class Sync {
 
                         @Override
                         public void onFail(String message) {
-                            stateListener.notifyError("mylike sync fail: " + current.body + "," + message);
+                            callErrorListeners("mylike sync fail: " + current.body + "," + message);
                             database.deletePendingCommand(Database.CMD_ID_SYNC_MYLIKE, current.body);
                             handleNext();
                         }
@@ -364,45 +411,19 @@ public class Sync {
         handler.post(new PendingTaskAction(cmds));
     }
 
-    public interface StateListener {
-        void notifyStagesUpdate();
-        void notifyOneStageUpdate(String stageName);
-        void notifyOneStageSyncError(String stageName, String msg);
-        void notifyError(String msg);
-    }
-
-    StateListener stateListener;
-
-    public Sync(Database db, Server sv, StateListener listener) {
-        database = db;
-        server = sv;
-        stateListener = listener;
-    }
 
     public Sync(Database db, Server sv) {
-        this(db, sv, new StateListener() {
-            @Override
-            public void notifyStagesUpdate() {
-
-            }
-
-            @Override
-            public void notifyOneStageUpdate(String stageName) {
-
-            }
-
-            @Override
-            public void notifyOneStageSyncError(String stageName, String msg) {
-
-            }
-
-            @Override
-            public void notifyError(String msg) {
-
-            }
-        });
+        database = db;
+        server = sv;
     }
 
+    static Sync s_instance;
+    public static Sync getInstance(Context context) {
+        if(s_instance == null) {
+            s_instance = new Sync(Database.getInstance(context), Server.getInstance());
+        }
+        return s_instance;
+    }
 
     public void syncStages() {
         // database.insertStageTableSyncRequest();
@@ -414,12 +435,12 @@ public class Sync {
                 for(String name : names) {
                     database.insertStage(name);
                 }
-                stateListener.notifyStagesUpdate();
+                callNotifyStageListUpdateListeners();
             }
 
             @Override
             public void onFail(String message) {
-                stateListener.notifyError(message);
+                callErrorListeners(message);
             }
         });
     }

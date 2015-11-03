@@ -13,15 +13,12 @@ public class QuestionActivity extends AppCompatActivity {
 
     Sync sync;
 
-    public static Sync s_sync; // for temp workaround.
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
 
-        sync = new Sync(Database.getInstance(this), Server.getInstance());
-        s_sync = sync;
+        sync = Sync.getInstance(this);
 
         Intent intent = getIntent();
         if(intent != null)
@@ -145,6 +142,22 @@ public class QuestionActivity extends AppCompatActivity {
         finish();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Sync.getInstance(this).addErrorListener(R.layout.activity_question, new Sync.ErrorListener() {
+            @Override
+            public void onError(String msg) {
+                showMessage("Error: " +msg);
+            }
+        });
+    }
+
+    @Override
+    protected void onStop() {
+        sync.removeErrorListener(R.layout.activity_question);
+        super.onStop();
+    }
 
     String stageName;
     Stage stage;
