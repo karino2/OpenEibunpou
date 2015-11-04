@@ -130,9 +130,9 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
             }
         });
 
-        sync.addOneStageLoadedListener(R.layout.activity_stage, new Sync.NotifyStageListener() {
+        sync.addOneStageLoadedListener(R.layout.activity_stage, new Sync.OnStageUpdateListener() {
             @Override
-            public void onNotify(String stageName) {
+            public void onStageUpdate(String stageName) {
                 showMessage("Stage " + stageName + " loaded.");
                 refresh();
             }

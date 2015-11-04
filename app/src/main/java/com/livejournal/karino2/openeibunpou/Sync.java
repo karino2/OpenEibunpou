@@ -19,13 +19,13 @@ public class Sync {
     Database database;
     Server server;
 
-    public interface NotifyStageListener {
-        void onNotify(String stageName);
+    public interface OnStageUpdateListener {
+        void onStageUpdate(String stageName);
     }
 
-    void callNotifyStageListeners(Map<Integer, NotifyStageListener> listenerMap, String stageName) {
-        for(NotifyStageListener listener : listenerMap.values()) {
-            listener.onNotify(stageName);
+    void callNotifyStageListeners(Map<Integer, OnStageUpdateListener> listenerMap, String stageName) {
+        for(OnStageUpdateListener listener : listenerMap.values()) {
+            listener.onStageUpdate(stageName);
         }
     }
 
@@ -117,10 +117,10 @@ public class Sync {
             body = b;
         }
     }
-    public void postComment(String stageName, String subName, String comment) {
-        Gson gson = new Gson();
-        PostDto dto = new PostDto(stageName, subName, 0, comment);
+    public void postComment(String stageName, String subName, int anon, String comment) {
+        PostDto dto = new PostDto(stageName, subName, anon, comment);
 
+        Gson gson = new Gson();
         // reverse order.
         database.insertUserPostSyncRequest(stageName);
         database.insertPostUserPostRequest(gson.toJson(dto));
@@ -132,9 +132,9 @@ public class Sync {
         handlePendingRequest();
     }
 
-    Map<Integer, NotifyStageListener> completionArrivedListener = new HashMap<>();
+    Map<Integer, OnStageUpdateListener> completionArrivedListener = new HashMap<>();
 
-    public void addOneStageLoadedListener(int id, NotifyStageListener listener) {
+    public void addOneStageLoadedListener(int id, OnStageUpdateListener listener) {
         completionArrivedListener.put(id, listener);
     }
 
@@ -162,13 +162,13 @@ public class Sync {
         callNotifyStageListeners(completionArrivedListener, stageName);
     }
 
-    Map<Integer, NotifyStageListener> userPostListeners = new HashMap<>();
+    Map<Integer, OnStageUpdateListener> userPostListeners = new HashMap<>();
 
-    public void addOnUserPostArrivedListener(int id, NotifyStageListener listener) {
+    public void addOnUserPostArrivedListener(int id, OnStageUpdateListener listener) {
         userPostListeners.put(id, listener);
     }
 
-    public void removeUserPostArrivedListener(int id) {
+    public void removeOnUserPostArrivedListener(int id) {
         userPostListeners.remove(id);
     }
 

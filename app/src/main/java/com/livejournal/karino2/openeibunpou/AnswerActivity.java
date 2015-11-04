@@ -9,13 +9,12 @@ import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 public class AnswerActivity extends AppCompatActivity {
+    final int USER_POST_ACTIVITY_ID = 1;
 
     void formatIntArray(StringBuffer buf, int[] arr) {
         for(int elm : arr) {
@@ -234,33 +233,59 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.buttonSend).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.buttonNewPost).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EditText et = (EditText)findViewById(R.id.editTextComment);
-                sync.postComment(stageName, subName, et.getText().toString());
-                et.setText("");
+                Intent intent = new Intent(AnswerActivity.this, UserPostActivity.class);
+                intent.putExtra("stageName", stageName);
+                intent.putExtra("subName", subName);
+                intent.putExtra("draftText", draftText);
+                intent.putExtra("body", getTVText(R.id.textViewBody));
+                intent.putExtra("answer", getTVText(R.id.textViewAnswer));
+                startActivityForResult(intent, USER_POST_ACTIVITY_ID);
             }
         });
+    }
 
+    String getTVText(int id) {
+        return ((TextView)findViewById(id)).getText().toString();
+    }
+
+    String draftText = "";
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == USER_POST_ACTIVITY_ID) {
+            if(resultCode == Activity.RESULT_CANCELED) {
+                draftText = data.getStringExtra("draftText");
+            } else {
+                draftText = "";
+                refresh();
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        getSync().addOnUserPostArrivedListener(R.layout.activity_answer, new Sync.NotifyStageListener() {
+        getSync().addOnUserPostArrivedListener(R.layout.activity_answer, new Sync.OnStageUpdateListener() {
             @Override
-            public void onNotify(String stageName) {
-                Loader<Object> loader = getLoaderManager().getLoader(0);
-                if(loader != null)
-                    loader.forceLoad();
+            public void onStageUpdate(String stageName) {
+                refresh();
             }
         });
     }
 
+    void refresh() {
+        Loader<Object> loader = getLoaderManager().getLoader(0);
+        if(loader != null)
+            loader.forceLoad();
+    }
+
     @Override
     protected void onStop() {
-        getSync().removeUserPostArrivedListener(R.layout.activity_answer);
+        getSync().removeOnUserPostArrivedListener(R.layout.activity_answer);
         super.onStop();
     }
 

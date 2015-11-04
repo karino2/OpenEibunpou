@@ -7,4 +7,7 @@
     <string name="label_send">Send</string>
     <string name="label_like">+1</string>
     <string name="label_dislike">-1</string>
+    <string name="label_anonymous">anonymous</string>
+    <string name="label_post">Post</string>
+    <string name="label_new_post">New Post</string>
 </resources>
