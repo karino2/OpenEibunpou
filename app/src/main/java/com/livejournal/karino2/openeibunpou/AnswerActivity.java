@@ -149,8 +149,8 @@ public class AnswerActivity extends AppCompatActivity {
 
          */
         adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
-                new String[]{"body", "like", "dislike", "mylike"},
-                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike });
+                new String[]{"body", "like", "dislike", "mylike", "owner"},
+                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike, R.id.textViewOwner });
         /*
         adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
                 new String[]{"body", "like", "dislike"},

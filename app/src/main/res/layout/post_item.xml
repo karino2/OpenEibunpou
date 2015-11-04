@@ -60,5 +60,15 @@
         android:layout_toRightOf="@+id/textViewDislike"
         android:layout_toEndOf="@+id/textViewDislike" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="hogehog@ikaika.com"
+        android:id="@+id/textViewOwner"
+        android:layout_below="@+id/textViewPost"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
 
 </RelativeLayout>

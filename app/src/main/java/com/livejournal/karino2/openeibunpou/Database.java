@@ -468,7 +468,8 @@ public class Database {
                         "like",
                         "dislike",
                         "body",
-                        "val as mylike"
+                        "val as mylike",
+						"owner"
                 },
                 "stageName = ? AND subName = ?",
                 new String[] {
