@@ -133,6 +133,9 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
         sync.addOneStageLoadedListener(R.layout.activity_stage, new Sync.OnStageUpdateListener() {
             @Override
             public void onStageUpdate(String stageName) {
+                Stage stage = Database.getInstance(StageActivity.this).queryStage(stageName);
+                sync.updateStageCompletion(stageName, stage.calcStageCompletion());
+
                 showMessage("Stage " + stageName + " loaded.");
                 refresh();
             }
