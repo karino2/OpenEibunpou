@@ -10,4 +10,6 @@
     <string name="label_anonymous">anonymous</string>
     <string name="label_post">Post</string>
     <string name="label_new_post">New Post</string>
+    <string name="title_activity_latest_user_post">LatestUserPostActivity</string>
+    <string name="label_menu_goto_latest">Recent posts</string>
 </resources>

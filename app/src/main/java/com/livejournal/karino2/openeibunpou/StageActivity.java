@@ -122,7 +122,7 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
     protected void onStart() {
         super.onStart();
         sync = Sync.getInstance(this);
-        sync.addStageListUpdateListener(R.layout.activity_stage, new Sync.NotifyStageListListener() {
+        sync.addStageListUpdateListener(R.layout.activity_stage, new Sync.NotifyUpdateListener() {
             @Override
             public void onUpdate() {
                 setStatusLabel("");
@@ -246,6 +246,10 @@ public class StageActivity extends AppCompatActivity implements LoaderManager.Lo
             case R.id.menu_delete:
                 getDatabase(this).recreate();
                 refresh();
+                return true;
+            case R.id.menu_latest_posts:
+                Intent intent = new Intent(this, LatestUserPostActivity.class);
+                startActivity(intent);
                 return true;
         }
         return super.onOptionsItemSelected(item);

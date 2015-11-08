@@ -24,12 +24,14 @@ public class Database {
     public static final int CMD_ID_POST_USERPOST = 5;
 	public static final int CMD_ID_SYNC_MYLIKE = 6;
     public static final int CMD_ID_UPDATE_MYLIKE = 7;
+    public static final int CMD_ID_SYNC_LATEST_POST = 8;
 
+    static final int DATABASE_VERSION = 2;
 
     private class OpenHelper extends SQLiteOpenHelper {
 		
 		OpenHelper(Context context) {
-			super(context, "openeibunpou.db", null, 1);
+			super(context, "openeibunpou.db", null, DATABASE_VERSION);
 		}
 
 		@Override
@@ -38,7 +40,12 @@ public class Database {
 		}
 
 		@Override
-		public void onUpgrade(SQLiteDatabase db, int arg1, int arg2) {
+		public void onUpgrade(SQLiteDatabase db, int arg1, int arg2)
+        {
+            if(arg1 == 1 && arg2 == 2) {
+                createUserPostTable(db, "userpost_latest_table");
+                return;
+            }
 			recreate(db);
 		}
 		
@@ -67,23 +74,11 @@ public class Database {
 		+",date integer not null"
 		+");");
 
-		db.execSQL("CREATE TABLE userpost_table (_id integer primary key autoincrement"
-                +",serverId integer not null"
-				+",owner text not null"
-				+",stageName text not null"
-				+",subName text not null"
-				+",anonymous integer not null"
-				+",parent integer not null"
-				+",childrenNum integer not null"
-				+",like integer not null"
-				+",dislike integer not null"
-				+",totalScore integer not null"
-				+",report integer not null"
-				+",body text not null"
-				+",date integer not null"
-				+");");
+        createUserPostTable(db, "userpost_table");
+        createUserPostTable(db, "userpost_latest_table");
 
-		db.execSQL("CREATE TABLE like_table (_id integer primary key autoincrement"
+
+        db.execSQL("CREATE TABLE like_table (_id integer primary key autoincrement"
                 +",postId integer not null"
 				+",val integer not null"
 				+",date integer not null"
@@ -100,16 +95,36 @@ public class Database {
 
 	}
 
-	private void dropTables(SQLiteDatabase db) {
+    private void createUserPostTable(SQLiteDatabase db, String tableName) {
+        db.execSQL("CREATE TABLE " + tableName + " (_id integer primary key autoincrement"
+                + ",serverId integer not null"
+                + ",owner text not null"
+                + ",stageName text not null"
+                + ",subName text not null"
+                + ",anonymous integer not null"
+                + ",parent integer not null"
+                + ",childrenNum integer not null"
+                + ",like integer not null"
+                + ",dislike integer not null"
+                + ",totalScore integer not null"
+                + ",report integer not null"
+                + ",body text not null"
+                + ",date integer not null"
+                + ");");
+    }
+
+    private void dropTables(SQLiteDatabase db) {
 		db.execSQL("DROP TABLE IF EXISTS question_table;");
 		db.execSQL("DROP TABLE IF EXISTS stage_table;");
 		db.execSQL("DROP TABLE IF EXISTS completion_table;");
 		db.execSQL("DROP TABLE IF EXISTS userpost_table;");
 		db.execSQL("DROP TABLE IF EXISTS like_table;");
 		db.execSQL("DROP TABLE IF EXISTS pendingrequest_table;");
-	}
-	
-	private void recreate(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS userpost_latest_table;");
+    }
+
+
+    private void recreate(SQLiteDatabase db) {
 		dropTables(db);
 		createTables(db);
 	}
@@ -221,6 +236,7 @@ public class Database {
         public long id;
         public String owner;
         public int anonymous;
+        public String year;
         public String sub;
         public long parent;
         public String body;
@@ -229,11 +245,11 @@ public class Database {
         public long date;
     }
 
-    public void insertUserPost(String stageName, UserPostRecord rec) {
+    public void insertUserPost(String tableName, UserPostRecord rec) {
         ContentValues values = new ContentValues();
         values.put("serverId", rec.id);
         values.put("owner", rec.owner);
-        values.put("stageName", stageName);
+        values.put("stageName", rec.year);
         values.put("subName", rec.sub);
         values.put("anonymous", rec.anonymous);
         values.put("parent", rec.parent);
@@ -244,9 +260,9 @@ public class Database {
         values.put("report", 0);
         values.put("body", rec.body);
         values.put("date", rec.date);
-		int res = database.update("userpost_table", values, "serverId = ?" , new String[]{String.valueOf(rec.id)});
+		int res = database.update(tableName, values, "serverId = ?" , new String[]{String.valueOf(rec.id)});
 		if(res == 0)
-	        database.insert("userpost_table", null, values);
+	        database.insert(tableName, null, values);
     }
 
 
@@ -288,6 +304,14 @@ public class Database {
         insertPendingCmd(CMD_ID_SYNC_MYLIKE, stageName);
     }
 
+    public void insertSyncLatestPostRequest() {
+        insertPendingCmd(CMD_ID_SYNC_LATEST_POST, "");
+    }
+
+    public void deleteSyncLatestPostRequest() {
+        deletePendingCommandByCmdId(CMD_ID_SYNC_LATEST_POST);
+    }
+
     public void insertMyLikeUpdateRequest(long id, int newVal) {
         insertPendingCmdWithArg(CMD_ID_UPDATE_MYLIKE, String.valueOf(id), String.valueOf(newVal));
     }
@@ -312,6 +336,10 @@ public class Database {
 	public void deletePendingCommand(int cmdId, String body) {
 		database.delete("pendingrequest_table", "cmd = ? AND body = ?", new String[]{String.valueOf(cmdId), body});
 	}
+
+    public void deletePendingCommandByCmdId(int cmdId) {
+        database.delete("pendingrequest_table", "cmd = ?", new String[]{String.valueOf(cmdId)});
+    }
 
 
 	public static class PendingCommand {
@@ -408,6 +436,11 @@ public class Database {
         return getMaxDate(cursor);
     }
 
+    public long lastLatestPostTick() {
+        Cursor cursor = database.query("userpost_latest_table", new String[]{"max(date)"},null, null, null, null, null);
+        return getMaxDate(cursor);
+    }
+
     public long getMaxDate(Cursor cursor) {
         try {
             if(cursor.getCount() == 0)
@@ -423,43 +456,11 @@ public class Database {
         return lastTick(stageName, "userpost_table");
     }
 
-    /*
-		db.execSQL("CREATE TABLE userpost_table (_id integer primary key autoincrement"
-                +",serverId integer not null"
-				+",owner text not null"
-				+",stageName text not null"
-				+",subName text not null"
-				+",anonymous integer not null"
-				+",parent integer not null"
-				+",childrenNum integer not null"
-				+",like integer not null"
-				+",dislike integer not null"
-				+",totalScore integer not null"
-				+",report integer not null"
-				+",body text not null"
-				+",date integer not null"
-				+");");
+    public Cursor queryLatestPosts() {
+        return database.query("userpost_latest_table", new String[]{"_id", "stageName", "subName", "owner", "body", "date"}, null, null, null, null, "date DESC");
+    }
 
-		db.execSQL("CREATE TABLE like_table (_id integer primary key autoincrement"
-                +",postId integer not null"
-				+",val integer not null"
-				+",date integer not null"
-				+");");
-
-     */
     public Cursor queryPosts(String stageName, String subName) {
-        /*
-        return database.query("userpost_table", new String[]{"_id", "serverId", "like", "dislike", "body", "stageName", "subName", "totalScore"},
-                "stageName = ? AND subName = ?",
-                new String[] {
-                        stageName,
-                        subName
-                },
-                null,
-                null,
-                "totalScore DESC"
-                );
-                */
         SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         builder.setTables("userpost_table LEFT OUTER JOIN like_table ON (userpost_table.serverId = like_table.postId)");
         return builder.query(database, new String[]{

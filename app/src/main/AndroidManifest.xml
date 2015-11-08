@@ -29,6 +29,11 @@
         </activity>
         <activity android:name=".UserPostActivity" >
         </activity>
+        <activity
+            android:name=".LatestUserPostActivity"
+            android:label="@string/title_activity_latest_user_post"
+            android:parentActivityName=".StageActivity">
+        </activity>
     </application>
 
 </manifest>

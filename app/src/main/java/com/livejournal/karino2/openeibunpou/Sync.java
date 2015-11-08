@@ -29,22 +29,40 @@ public class Sync {
         }
     }
 
-    public interface NotifyStageListListener {
+    public interface NotifyUpdateListener {
         void onUpdate();
     }
 
-    Map<Integer, NotifyStageListListener> stageListListener = new HashMap<>();
-    public void addStageListUpdateListener(int id, NotifyStageListListener listener) {
+    Map<Integer, NotifyUpdateListener> stageListListener = new HashMap<>();
+    public void addStageListUpdateListener(int id, NotifyUpdateListener listener) {
         stageListListener.put(id, listener);
     }
     public void removeStageListUpdateListener(int id) {
         stageListListener.remove(id);
     }
     void callNotifyStageListUpdateListeners() {
-        for(NotifyStageListListener listener : stageListListener.values()) {
+        Map<Integer, NotifyUpdateListener> listeners = stageListListener;
+
+        callNotifyUpdateListeners(listeners);
+    }
+
+    private void callNotifyUpdateListeners(Map<Integer, NotifyUpdateListener> listeners) {
+        for(NotifyUpdateListener listener : listeners.values()) {
             listener.onUpdate();
         }
     }
+
+    Map<Integer, NotifyUpdateListener> latestPostListener = new HashMap<>();
+    public void addLatestPostUpdateListener(int id, NotifyUpdateListener listener) {
+        latestPostListener.put(id, listener);
+    }
+    public void removeLatestPostUpdateListener(int id) {
+        latestPostListener.remove(id);
+    }
+    void callNotifyLatestPostUpdateListeners() {
+        callNotifyUpdateListeners(latestPostListener);
+    }
+
 
     public interface ErrorListener {
         void onError(String msg);
@@ -97,6 +115,11 @@ public class Sync {
         database.insertCompletionRequest(stageName);
         database.insertUpdateCompletionRequest(json);
         // TODO: this might gc-ed.
+        handlePendingRequest();
+    }
+
+    public void syncLatestUserPost() {
+        database.insertSyncLatestPostRequest();
         handlePendingRequest();
     }
 
@@ -172,28 +195,13 @@ public class Sync {
         userPostListeners.remove(id);
     }
 
-    /*
-            obj = {
-            'id': p.key.id(),
-            'owner': owner,
-            'anonymous': p.anonymous,
-            'sub': p.subQuestionNumber,
-            'parent': p.parent,
-            'body': p.body,
-            'like': p.like,
-            'dislike': p.dislike,
-            'date': p.date
-            }
-
-     */
-    private void onUserPostListArrived(String stageName, String responseText) {
+    private void onUserPostListArrived(String tableName,String responseText) {
         Gson gson = new Gson();
         Type collectionType = new TypeToken<Collection<Database.UserPostRecord>>(){}.getType();
         List<Database.UserPostRecord> records = gson.fromJson(responseText, collectionType);
         for(Database.UserPostRecord rec : records) {
-            database.insertUserPost(stageName, rec);
+            database.insertUserPost(tableName, rec);
         }
-        callNotifyStageListeners(userPostListeners, stageName);
     }
 
 
@@ -333,7 +341,8 @@ public class Sync {
                     server.executeGet("/posts/" + current.body + "/" + database.lastPostTick(current.body), new Server.OnContentReadyListener() {
                         @Override
                         public void onReady(String responseText) {
-                            onUserPostListArrived(current.body, responseText);
+                            onUserPostListArrived("userpost_table", responseText);
+                            callNotifyStageListeners(userPostListeners, current.body);
                             database.deletePendingCommand(Database.CMD_ID_SYNC_USERPOST, current.body);
                             handleNext();
                         }
@@ -382,6 +391,26 @@ public class Sync {
                     builder.append("}");
                     postParams.put("json", builder.toString());
                     server.executePost("/like", postParams, new PendingUpdateListener(current.id));
+                    break;
+                }
+                case  Database.CMD_ID_SYNC_LATEST_POST:
+                {
+                    server.executeGet("/nposts/" + String.valueOf(database.lastLatestPostTick()), new Server.OnContentReadyListener() {
+                        @Override
+                        public void onReady(String responseText) {
+                            onUserPostListArrived("userpost_latest_table",responseText);
+                            callNotifyLatestPostUpdateListeners();
+                            database.deleteSyncLatestPostRequest();
+                            handleNext();
+                        }
+
+                        @Override
+                        public void onFail(String message) {
+                            callErrorListeners("sync latest fail: " + message);
+                            // database.deleteSyncLatestPostRequest();
+                            handleNext();
+                        }
+                    });
                     break;
                 }
                 default:
