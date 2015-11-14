@@ -16,29 +16,10 @@ import android.widget.TextView;
 public class AnswerActivity extends AppCompatActivity {
     final int USER_POST_ACTIVITY_ID = 1;
 
-    void formatIntArray(StringBuffer buf, int[] arr) {
-        for(int elm : arr) {
-            buf.append(elm);
-            buf.append(",");
-        }
-    }
-
-    void formatStringArray(StringBuffer buf, String[] arr) {
-        buf.append("\n");
-        for(int i =0; i < arr.length; i++){
-            buf.append("    ");
-            buf.append(i+1);
-            buf.append(": ");
-            buf.append(arr[i]);
-            buf.append("\n");
-        }
-    }
-
     SimpleCursorAdapter adapter;
     Database database;
 
     String stageName;
-    String subName;
 
     Sync sync;
 
@@ -70,6 +51,8 @@ public class AnswerActivity extends AppCompatActivity {
         return sync;
     }
 
+    QuestionRecord question;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,20 +64,20 @@ public class AnswerActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if(intent != null) {
             // TODO: save instance state.
-            stageName = intent.getStringExtra("stageName");
-            subName = intent.getStringExtra("subName");
+            question = QuestionRecord.createFromIntent(intent);
 
-            setTitle(String.valueOf(intent.getIntExtra("completion", 0) + " %"));
+            stageName = intent.getStringExtra("stageName");
+
+            setTitle(String.valueOf(question.getCompletion()+ " %"));
 
 
             TextView tv = (TextView)findViewById(R.id.textViewBody);
-            tv.setText(intent.getStringExtra("body"));
+            tv.setText(question.getBody());
 
             int[] selected = intent.getIntArrayExtra("selectedNum");
-            int[] answer = intent.getIntArrayExtra("answerNum");
 
             tv = (TextView)findViewById(R.id.textViewResult);
-            if(isCorrect(selected, answer))
+            if(isCorrect(selected, question.getAnswers()))
             {
                 tv.setText("Correct");
             } else {
@@ -103,19 +86,19 @@ public class AnswerActivity extends AppCompatActivity {
 
             StringBuffer buf = new StringBuffer();
             buf.append("selected: ");
-            formatIntArray(buf, selected);
+            question.formatIntArray(buf, selected);
             buf.append("\n");
 
             buf.append("answer: ");
-            formatIntArray(buf, answer);
+            question.formatAnswers(buf);
             buf.append("\n");
 
             buf.append("options: ");
-            formatStringArray(buf, intent.getStringArrayExtra("options"));
+            question.formatOptions(buf);
             buf.append("\n");
 
             buf.append("questionType: ");
-            buf.append(intent.getIntExtra("questionType", 0));
+            buf.append(question.getQuestionType());
 
             tv = (TextView)findViewById(R.id.textViewAnswer);
             tv.setText(buf.toString());
@@ -172,7 +155,7 @@ public class AnswerActivity extends AppCompatActivity {
                 return new SimpleCursorLoader(AnswerActivity.this) {
                     @Override
                     public Cursor loadCursor() {
-                        return database.queryPosts(stageName, subName);
+                        return database.queryPosts(stageName, question.getSubName());
                     }
                 };
             }
@@ -192,11 +175,9 @@ public class AnswerActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(AnswerActivity.this, UserPostActivity.class);
+                question.saveToIntent(intent);
                 intent.putExtra("stageName", stageName);
-                intent.putExtra("subName", subName);
                 intent.putExtra("draftText", draftText);
-                intent.putExtra("body", getTVText(R.id.textViewBody));
-                intent.putExtra("answer", getTVText(R.id.textViewAnswer));
                 startActivityForResult(intent, USER_POST_ACTIVITY_ID);
             }
         });

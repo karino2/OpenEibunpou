@@ -13,9 +13,9 @@ public class UserPostActivity extends AppCompatActivity {
 
 
     String stageName;
-    String subName;
     String draftText;
     Sync sync;
+    QuestionRecord question;
 
     Intent resultIntent = new Intent();
 
@@ -27,14 +27,14 @@ public class UserPostActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if(intent != null) {
             stageName = intent.getStringExtra("stageName");
-            subName = intent.getStringExtra("subName");
             draftText = intent.getStringExtra("draftText");
+            question = QuestionRecord.createFromIntent(intent);
 
             resultIntent.putExtra("draftText", draftText);
             setResult(RESULT_CANCELED, resultIntent);
 
-            setTVText(R.id.textViewBody, intent.getStringExtra("body"));
-            setTVText(R.id.textViewAnswer, intent.getStringExtra("answer"));
+            setTVText(R.id.textViewBody, question.getBody());
+            setTVText(R.id.textViewAnswer, question.formatAnswers());
         }
 
     }
@@ -84,7 +84,7 @@ public class UserPostActivity extends AppCompatActivity {
                 int anonymous = cb.isChecked() ? 1 : 0 ;
 
                 EditText et = (EditText)findViewById(R.id.editTextUserPost);
-                Sync.getInstance(this).postComment(stageName, subName, anonymous, et.getText().toString());
+                Sync.getInstance(this).postComment(stageName, question.getSubName(), anonymous, et.getText().toString());
                 et.setText("");
 
                 return true;

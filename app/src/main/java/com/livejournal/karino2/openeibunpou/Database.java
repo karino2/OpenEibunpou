@@ -387,7 +387,7 @@ public class Database {
             cursor.moveToFirst();
 			do {
 				int completion = getCompletion(cursor.getString(2), compMap);
-				stage.addQuestion(new QuestionRecord(cursor, completion));
+				stage.addQuestion(QuestionRecord.createFromCursor(cursor, completion));
             }while(cursor.moveToNext());
             
             return stage;

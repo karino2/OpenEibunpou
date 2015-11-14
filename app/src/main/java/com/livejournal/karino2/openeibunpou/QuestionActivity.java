@@ -98,13 +98,8 @@ public class QuestionActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, AnswerActivity.class);
         intent.putExtra("selectedNum", selectedIds);
-        intent.putExtra("answerNum", question.getAnswers());
-        intent.putExtra("options", question.getOptions());
-        intent.putExtra("body", question.getBody());
-        intent.putExtra("questionType", question.getQuestionType());
         intent.putExtra("stageName", stageName);
-        intent.putExtra("subName", question.getSubName());
-        intent.putExtra("completion", question.getCompletion());
+        question.saveToIntent(intent);
 
         startActivityForResult(intent, DUMMY_REQUEST_ANSWER_ID);
     }
