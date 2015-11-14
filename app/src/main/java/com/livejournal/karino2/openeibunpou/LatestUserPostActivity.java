@@ -81,7 +81,11 @@ public class LatestUserPostActivity extends AppCompatActivity  implements Loader
                     view.setTag(R.layout.activity_latest_user_post, cursor.getString(1)); // stageName
                     view.setTag(R.layout.latest_post_item, cursor.getString(2)); // subName
 
-                    Date dt = new Date(cursor.getLong(5));
+                    // cursor.getLong(5) is the value from 2010, 1,1, seconds.
+                    // may be we should convert when insert db, but I'm lazy to recreate DB, so I convert here.
+                    Date baseDt = new Date(2010-1900, 0, 1, 0, 0, 0);
+                    Date dt = new Date(baseDt.getTime() + cursor.getLong(5)*1000);
+
                     SimpleDateFormat ft = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
                     ((TextView)view).setText(ft.format(dt));
                     return true;
