@@ -119,14 +119,6 @@ public class AnswerActivity extends AppCompatActivity {
 
             tv = (TextView)findViewById(R.id.textViewAnswer);
             tv.setText(buf.toString());
-        /*
-                intent.putExtra("selectedNum", new int[]{selected});
-        intent.putExtra("answerNum", question.getAnswers());
-        intent.putExtra("options", question.getOptions());
-        intent.putExtra("body", question.getBody());
-        intent.putExtra("questionType", question.getQuestionType());
-
-         */
 
         }
 
@@ -139,23 +131,9 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
 
-        /*
-                                "userpost_table._id as _id",
-                        "serverId",
-                        "like",
-                        "dislike",
-                        "body",
-                        "val as mylike"
-
-         */
         adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
                 new String[]{"body", "like", "dislike", "mylike", "owner"},
                 new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike, R.id.textViewOwner });
-        /*
-        adapter = new SimpleCursorAdapter(this, R.layout.post_item, null,
-                new String[]{"body", "like", "dislike"},
-                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal});
-                */
 
         adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
@@ -186,29 +164,6 @@ public class AnswerActivity extends AppCompatActivity {
             }
         });
         ListView lv = (ListView)findViewById(R.id.listViewComment);
-        /*
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                View parentView = (View)view.getParent();
-                TextView likeTv = (TextView)parent.findViewById(R.id.textViewLike);
-                TextView dislikeTv = (TextView)parent.findViewById(R.id.textViewDislike);
-
-                switch(view.getId()) {
-                    case R.id.textViewLike:
-                    {
-                        onLikeClicked(id, parentView, likeTv, dislikeTv);
-                        break;
-                    }
-                    case R.id.textViewDislike:
-                    {
-                        onDislikeClicked(id, parentView, likeTv, dislikeTv);
-                        return;
-                    }
-                }
-            }
-        });
-        */
         lv.setAdapter(adapter);
 
         getLoaderManager().initLoader(0, null, new LoaderManager.LoaderCallbacks<Cursor>() {
