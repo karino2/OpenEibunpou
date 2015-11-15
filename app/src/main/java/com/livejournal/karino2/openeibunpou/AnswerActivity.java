@@ -1,7 +1,10 @@
 package com.livejournal.karino2.openeibunpou;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.LoaderManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -9,12 +12,15 @@ import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 public class AnswerActivity extends AppCompatActivity {
     final int USER_POST_ACTIVITY_ID = 1;
+    final int DIALOG_ID_NEWPOST = 2;
 
     String stageName;
 
@@ -93,13 +99,61 @@ public class AnswerActivity extends AppCompatActivity {
         findViewById(R.id.buttonNewPost).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /*
                 Intent intent = new Intent(AnswerActivity.this, UserPostActivity.class);
                 question.saveToIntent(intent);
                 intent.putExtra("stageName", stageName);
                 intent.putExtra("draftText", draftText);
                 startActivityForResult(intent, USER_POST_ACTIVITY_ID);
+                */
+                showDialog(DIALOG_ID_NEWPOST);
             }
         });
+    }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch(id) {
+            case DIALOG_ID_NEWPOST:
+                View view = getLayoutInflater().inflate(R.layout.dialog_user_post, null);
+                final Dialog dialog =  new AlertDialog.Builder(this)
+                        .setView(view)
+                        .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(DialogInterface dialog) {
+                                draftText = ((EditText)((AlertDialog)dialog).findViewById(R.id.editTextUserPost)).getText().toString();
+                            }
+                        })
+                        .setCancelable(true)
+                        .create();
+                dialog.setCanceledOnTouchOutside(true);
+                (view.findViewById(R.id.buttonPost)).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        View holder = (View) v.getParent();
+                        CheckBox cb = (CheckBox) holder.findViewById(R.id.checkBoxAnonymous);
+                        int anonymous = cb.isChecked() ? 1 : 0;
+
+                        EditText et = (EditText) holder.findViewById(R.id.editTextUserPost);
+                        getSync().postComment(stageName, question.getSubName(), anonymous, et.getText().toString());
+                        draftText = "";
+                        // TODO: should show notification.
+                        dialog.dismiss();
+                    }
+                });
+                return dialog;
+        }
+        return super.onCreateDialog(id);
+    }
+
+    @Override
+    protected void onPrepareDialog(int id, Dialog dialog) {
+        switch(id) {
+            case DIALOG_ID_NEWPOST:
+                ((EditText)dialog.findViewById(R.id.editTextUserPost)).setText(draftText);
+                return;
+        }
+        super.onPrepareDialog(id, dialog);
     }
 
     String getTVText(int id) {
