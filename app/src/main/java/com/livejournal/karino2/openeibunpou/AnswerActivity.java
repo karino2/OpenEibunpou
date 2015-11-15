@@ -19,8 +19,7 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 public class AnswerActivity extends AppCompatActivity {
-    final int USER_POST_ACTIVITY_ID = 1;
-    final int DIALOG_ID_NEWPOST = 2;
+    final int DIALOG_ID_NEWPOST = 1;
 
     String stageName;
 
@@ -99,13 +98,6 @@ public class AnswerActivity extends AppCompatActivity {
         findViewById(R.id.buttonNewPost).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*
-                Intent intent = new Intent(AnswerActivity.this, UserPostActivity.class);
-                question.saveToIntent(intent);
-                intent.putExtra("stageName", stageName);
-                intent.putExtra("draftText", draftText);
-                startActivityForResult(intent, USER_POST_ACTIVITY_ID);
-                */
                 showDialog(DIALOG_ID_NEWPOST);
             }
         });
@@ -162,18 +154,6 @@ public class AnswerActivity extends AppCompatActivity {
 
     String draftText = "";
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == USER_POST_ACTIVITY_ID) {
-            if(resultCode == Activity.RESULT_CANCELED) {
-                draftText = data.getStringExtra("draftText");
-            } else {
-                draftText = "";
-                refresh();
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
 
     @Override
     protected void onStart() {
