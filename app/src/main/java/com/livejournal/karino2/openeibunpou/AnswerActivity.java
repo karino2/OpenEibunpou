@@ -12,6 +12,7 @@ import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -50,19 +51,23 @@ public class AnswerActivity extends AppCompatActivity {
             tv.setText(question.getBody());
 
             int[] selected = intent.getIntArrayExtra("selectedNum");
+            boolean userAnswerExist = selected != null;
 
-            tv = (TextView)findViewById(R.id.textViewResult);
-            if(isCorrect(selected, question.getAnswers()))
-            {
-                tv.setText("Correct");
-            } else {
-                tv.setText("Wrong");
+            if(userAnswerExist) {
+                tv = (TextView) findViewById(R.id.textViewResult);
+                if (isCorrect(selected, question.getAnswers())) {
+                    tv.setText("Correct");
+                } else {
+                    tv.setText("Wrong");
+                }
             }
 
             StringBuffer buf = new StringBuffer();
-            buf.append("selected: ");
-            question.formatIntArray(buf, selected);
-            buf.append("\n");
+            if(userAnswerExist) {
+                buf.append("selected: ");
+                question.formatIntArray(buf, selected);
+                buf.append("\n");
+            }
 
             buf.append("answer: ");
             question.formatAnswers(buf);
@@ -77,6 +82,10 @@ public class AnswerActivity extends AppCompatActivity {
 
             tv = (TextView)findViewById(R.id.textViewAnswer);
             tv.setText(buf.toString());
+
+            if(!userAnswerExist) {
+                ((Button)findViewById(R.id.buttonNext)).setText(R.string.label_back);
+            }
 
         }
         postListHolder = new UserPostListHolder(this, getSync(), Database.getInstance(this), stageName, question.getSubName());

@@ -162,7 +162,9 @@ public class Sync {
     }
 
     public void removeOneStageLoadedListener(int id) {
-        completionArrivedListener.remove(id);
+        if(completionArrivedListener.containsKey(id)) {
+            completionArrivedListener.remove(id);
+        }
     }
 
 

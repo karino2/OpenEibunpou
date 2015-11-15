@@ -377,6 +377,21 @@ public class Database {
         return res;
     }
 
+    public QuestionRecord queryQuestion(String stageName, String subName) {
+        Map<String, Integer> compMap = queryCompletionMap(stageName);
+        Cursor cursor = database.query("question_table", new String[]{"_id", "stageName", "subName", "body", "options", "answer", "type"}, "stageName = ? AND subName = ?", new String[]{stageName, subName}, null, null, null);
+        try {
+            if(0 == cursor.getCount())
+                return null;
+            cursor.moveToFirst();
+            int completion = getCompletion(cursor.getString(2), compMap);
+            return QuestionRecord.createFromCursor(cursor, completion);
+        }finally {
+            cursor.close();
+        }
+
+    }
+
     public Stage queryStage(String stageName) {
         Stage stage = new Stage(stageName);
 		Map<String, Integer> compMap = queryCompletionMap(stageName);
