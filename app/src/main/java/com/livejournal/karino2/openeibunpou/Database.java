@@ -26,7 +26,7 @@ public class Database {
     public static final int CMD_ID_UPDATE_MYLIKE = 7;
     public static final int CMD_ID_SYNC_LATEST_POST = 8;
 
-    static final int DATABASE_VERSION = 2;
+    static final int DATABASE_VERSION = 3;
 
     private class OpenHelper extends SQLiteOpenHelper {
 		
@@ -42,10 +42,6 @@ public class Database {
 		@Override
 		public void onUpgrade(SQLiteDatabase db, int arg1, int arg2)
         {
-            if(arg1 == 1 && arg2 == 2) {
-                createUserPostTable(db, "userpost_latest_table");
-                return;
-            }
 			recreate(db);
 		}
 		
@@ -99,9 +95,9 @@ public class Database {
         db.execSQL("CREATE TABLE " + tableName + " (_id integer primary key autoincrement"
                 + ",serverId integer not null"
                 + ",owner text not null"
+                + ",nick text"
                 + ",stageName text not null"
                 + ",subName text not null"
-                + ",anonymous integer not null"
                 + ",parent integer not null"
                 + ",childrenNum integer not null"
                 + ",like integer not null"
@@ -235,7 +231,7 @@ public class Database {
     public static class UserPostRecord {
         public long id;
         public String owner;
-        public int anonymous;
+        public String nick;
         public String year;
         public String sub;
         public long parent;
@@ -249,9 +245,9 @@ public class Database {
         ContentValues values = new ContentValues();
         values.put("serverId", rec.id);
         values.put("owner", rec.owner);
+        values.put("nick", rec.nick);
         values.put("stageName", rec.year);
         values.put("subName", rec.sub);
-        values.put("anonymous", rec.anonymous);
         values.put("parent", rec.parent);
         values.put("childrenNum", 0);
         values.put("like", rec.like);
@@ -472,7 +468,7 @@ public class Database {
     }
 
     public Cursor queryLatestPosts() {
-        return database.query("userpost_latest_table", new String[]{"_id", "stageName", "subName", "owner", "body", "date"}, null, null, null, null, "date DESC");
+        return database.query("userpost_latest_table", new String[]{"_id", "stageName", "subName", "owner", "body", "date", "nick"}, null, null, null, null, "date DESC");
     }
 
     public Cursor queryPosts(String stageName, String subName) {
@@ -485,7 +481,8 @@ public class Database {
                         "dislike",
                         "body",
                         "val as mylike",
-						"owner"
+						"owner",
+                        "nick"
                 },
                 "stageName = ? AND subName = ?",
                 new String[] {

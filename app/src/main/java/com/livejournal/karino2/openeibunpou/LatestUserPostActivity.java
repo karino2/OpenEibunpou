@@ -82,8 +82,8 @@ public class LatestUserPostActivity extends AppCompatActivity  implements Loader
         "_id", "stageName", "subName", "owner", "body", "date"
          */
         adapter = new SimpleCursorAdapter(this, R.layout.latest_post_item, null,
-                new String[]{"body", "date", "owner"},
-                new int[]{ R.id.textViewPost, R.id.textViewDate, R.id.textViewOwner });
+                new String[]{"body", "date", "nick"},
+                new int[]{ R.id.textViewPost, R.id.textViewDate, R.id.textViewNick });
 
         adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override

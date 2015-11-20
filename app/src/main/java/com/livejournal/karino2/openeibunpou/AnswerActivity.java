@@ -132,11 +132,10 @@ public class AnswerActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         View holder = (View) v.getParent();
-                        CheckBox cb = (CheckBox) holder.findViewById(R.id.checkBoxAnonymous);
-                        int anonymous = cb.isChecked() ? 1 : 0;
+                        String nick = ((EditText)holder.findViewById(R.id.editTextNick)).getText().toString();
 
                         EditText et = (EditText) holder.findViewById(R.id.editTextUserPost);
-                        getSync().postComment(stageName, question.getSubName(), anonymous, et.getText().toString());
+                        getSync().postComment(stageName, question.getSubName(), nick, et.getText().toString());
                         draftText = "";
                         // TODO: should show notification.
                         dialog.dismiss();

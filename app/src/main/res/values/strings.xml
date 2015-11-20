@@ -13,4 +13,5 @@
     <string name="title_activity_latest_user_post">LatestUserPostActivity</string>
     <string name="label_menu_goto_latest">Recent posts</string>
     <string name="label_back">Back</string>
+    <string name="default_nick">anonymous</string>
 </resources>

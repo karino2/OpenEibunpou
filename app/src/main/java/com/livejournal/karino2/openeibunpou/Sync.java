@@ -131,17 +131,17 @@ public class Sync {
     class PostDto {
         String year;
         String sub;
-        int anon;
+        String nick;
         String body;
-        PostDto(String y, String s, int a, String b) {
+        PostDto(String y, String s, String nik, String b) {
             year = y;
             sub = s;
-            anon = a;
             body = b;
+            nick = nik;
         }
     }
-    public void postComment(String stageName, String subName, int anon, String comment) {
-        PostDto dto = new PostDto(stageName, subName, anon, comment);
+    public void postComment(String stageName, String subName, String nick, String comment) {
+        PostDto dto = new PostDto(stageName, subName, nick, comment);
 
         Gson gson = new Gson();
         // reverse order.

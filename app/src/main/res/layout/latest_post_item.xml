@@ -29,8 +29,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="hogehog@ikaika.com"
-        android:id="@+id/textViewOwner"
+        android:text="anonymous"
+        android:id="@+id/textViewNick"
         android:layout_below="@+id/textViewPost"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />

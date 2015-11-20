@@ -31,8 +31,8 @@ public class UserPostListHolder {
         this.subName = subName;
 
         adapter = new SimpleCursorAdapter(owner, R.layout.post_item, null,
-                new String[]{"body", "like", "dislike", "mylike", "owner"},
-                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike, R.id.textViewOwner });
+                new String[]{"body", "like", "dislike", "mylike", "nick"},
+                new int[]{ R.id.textViewPost, R.id.textViewLikeTotal, R.id.textViewDislikeTotal, R.id.textViewLike, R.id.textViewNick });
 
         adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
